@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Devenez bénévole au Challenge de France de Baseball 2026 à Toulouse. Consultez les créneaux disponibles et inscrivez-vous en ligne." />
+  <title>⚾ Bénévoles — Challenge de France Baseball 2026 · Toulouse</title>
+  <link rel="stylesheet" href="css/main.css" />
+</head>
+<body>
+
+  <!-- ====== HEADER ====== -->
+  <header>
+    <nav class="navbar" aria-label="Navigation principale">
+      <a href="index.html" class="navbar-brand" aria-label="Accueil">
+        <span class="brand-emoji" aria-hidden="true">⚾</span>
+        <span>
+          <span class="brand-text">Challenge de France 2026</span>
+          <span class="brand-sub">Bénévoles · Toulouse</span>
+        </span>
+      </a>
+      <div class="navbar-links" role="navigation">
+        <a href="index.html" class="active">Accueil</a>
+        <a href="benevole.html">S'inscrire</a>
+        <a href="benevole.html" class="btn-cta">Je m'inscris ⚾</a>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+
+    <!-- ====== HERO ====== -->
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="container">
+        <h1 id="hero-title">
+          Challenge de France<br><span>Baseball 2026</span>
+        </h1>
+        <p class="hero-sub">
+          19–21 juin 2026 · Toulouse — Rejoignez l'équipe de bénévoles !
+        </p>
+        <div class="hero-badges" aria-label="Informations clés">
+          <div class="hero-badge">📅 19–21 juin 2026</div>
+          <div class="hero-badge">📍 Toulouse</div>
+          <div class="hero-badge">⚾ Tournament national</div>
+          <div class="hero-badge">🤝 Bénévoles recherchés</div>
+        </div>
+        <div class="hero-actions">
+          <a href="benevole.html" class="btn btn-primary">Devenir bénévole →</a>
+          <a href="#creneaux" class="btn btn-outline">Voir les créneaux</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====== MISSIONS ====== -->
+    <section class="section" aria-labelledby="missions-title">
+      <div class="container">
+        <h2 class="section-title" id="missions-title">🎯 Les missions</h2>
+        <p class="section-sub">Cliquez sur une mission pour filtrer les créneaux correspondants.</p>
+
+        <div class="missions-grid" role="list">
+          <button class="mission-chip" data-mission="buvette" role="listitem" aria-label="Filtrer par mission Buvette">
+            <span class="mission-icon" aria-hidden="true">🍺</span>
+            Buvette
+          </button>
+          <button class="mission-chip" data-mission="sandwichs" role="listitem" aria-label="Filtrer par mission Sandwichs">
+            <span class="mission-icon" aria-hidden="true">🥪</span>
+            Sandwichs
+          </button>
+          <button class="mission-chip" data-mission="terrain" role="listitem" aria-label="Filtrer par mission Terrain">
+            <span class="mission-icon" aria-hidden="true">⚾</span>
+            Terrain
+          </button>
+          <button class="mission-chip" data-mission="animation" role="listitem" aria-label="Filtrer par mission Animation">
+            <span class="mission-icon" aria-hidden="true">🎉</span>
+            Animation
+          </button>
+          <button class="mission-chip" data-mission="accueil" role="listitem" aria-label="Filtrer par mission Accueil">
+            <span class="mission-icon" aria-hidden="true">👋</span>
+            Accueil
+          </button>
+          <button class="mission-chip" data-mission="autres" role="listitem" aria-label="Filtrer par mission Autres">
+            <span class="mission-icon" aria-hidden="true">🔧</span>
+            Autres
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====== STATS ====== -->
+    <section aria-label="Statistiques">
+      <div class="container">
+        <div class="stats-bar">
+          <div class="stat-card">
+            <div class="stat-number" id="stat-total-slots">—</div>
+            <div class="stat-label">Créneaux au total</div>
+          </div>
+          <div class="stat-card accent">
+            <div class="stat-number" id="stat-open-slots">—</div>
+            <div class="stat-label">Créneaux disponibles</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number" id="stat-volunteers">—</div>
+            <div class="stat-label">Bénévoles inscrits</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====== CRÉNEAUX ====== -->
+    <section class="section" id="creneaux" aria-labelledby="creneaux-title">
+      <div class="container">
+        <h2 class="section-title" id="creneaux-title">📅 Créneaux disponibles</h2>
+        <p class="section-sub">Trouvez un créneau qui vous convient et rejoignez l'aventure !</p>
+
+        <!-- Filtres -->
+        <div class="filter-bar" role="search" aria-label="Filtrer les créneaux">
+          <select id="filter-mission" aria-label="Filtrer par mission">
+            <option value="all">Toutes les missions</option>
+            <option value="buvette">🍺 Buvette</option>
+            <option value="sandwichs">🥪 Sandwichs</option>
+            <option value="terrain">⚾ Terrain</option>
+            <option value="animation">🎉 Animation</option>
+            <option value="accueil">👋 Accueil</option>
+            <option value="autres">🔧 Autres</option>
+          </select>
+          <select id="filter-date" aria-label="Filtrer par date">
+            <option value="all">Toutes les dates</option>
+          </select>
+        </div>
+
+        <!-- Grille des créneaux (injectée par slots.js) -->
+        <div id="slots-container" aria-live="polite" aria-label="Liste des créneaux">
+          <div class="empty-state">
+            <div class="empty-icon">⏳</div>
+            <p>Chargement des créneaux…</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====== CTA INSCRIPTION ====== -->
+    <section class="section" style="background:var(--color-primary);color:white;text-align:center;padding:3rem 1rem" aria-labelledby="cta-title">
+      <div class="container">
+        <h2 id="cta-title" style="font-size:1.8rem;margin-bottom:0.5rem">Prêt(e) à rejoindre l'équipe ?</h2>
+        <p style="opacity:0.85;margin-bottom:1.5rem">Chaque bénévole compte pour faire de cet événement un succès !</p>
+        <a href="benevole.html" class="btn btn-primary" style="font-size:1rem;padding:0.8rem 2rem">
+          Je m'inscris comme bénévole →
+        </a>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ====== FOOTER ====== -->
+  <footer>
+    <p>⚾ Challenge de France Baseball 2026 · Toulouse &nbsp;|&nbsp;
+       <a href="admin.html">Administration</a>
+    </p>
+  </footer>
+
+  <!-- Scripts (data.js doit être chargé en premier) -->
+  <script src="js/data.js"></script>
+  <script src="js/slots.js"></script>
+
+  <style>
+    .date-heading {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--color-primary);
+      margin: 1.5rem 0 0.75rem;
+      padding-bottom: 0.4rem;
+      border-bottom: 2px solid var(--color-border);
+    }
+  </style>
+
+</body>
+</html>

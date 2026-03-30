@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Inscrivez-vous comme bénévole au Challenge de France de Baseball 2026 à Toulouse." />
+  <title>S'inscrire — Bénévoles Challenge de France Baseball 2026</title>
+  <link rel="stylesheet" href="css/main.css" />
+</head>
+<body>
+
+  <!-- ====== HEADER ====== -->
+  <header>
+    <nav class="navbar" aria-label="Navigation principale">
+      <a href="index.html" class="navbar-brand" aria-label="Accueil">
+        <span class="brand-emoji" aria-hidden="true">⚾</span>
+        <span>
+          <span class="brand-text">Challenge de France 2026</span>
+          <span class="brand-sub">Bénévoles · Toulouse</span>
+        </span>
+      </a>
+      <div class="navbar-links" role="navigation">
+        <a href="index.html">Accueil</a>
+        <a href="benevole.html" class="active">S'inscrire</a>
+        <a href="benevole.html" class="btn-cta">Je m'inscris ⚾</a>
+      </div>
+    </nav>
+  </header>
+
+  <main class="form-page">
+    <div class="form-container">
+
+      <!-- Breadcrumb -->
+      <nav aria-label="Fil d'Ariane" style="font-size:0.82rem;color:var(--color-text-muted);margin-bottom:1rem">
+        <a href="index.html">Accueil</a> › Devenir bénévole
+      </nav>
+
+      <!-- ====== SUCCESS SCREEN ====== -->
+      <div id="success-screen" class="success-screen card" role="alert" aria-live="polite">
+        <div class="success-icon" aria-hidden="true">🎉</div>
+        <h3>Inscription confirmée !</h3>
+        <p>
+          Merci <strong class="success-name"></strong> !<br>
+          Votre inscription pour la mission <strong class="success-mission"></strong> a bien été enregistrée.<br>
+          Nous vous contacterons avec les détails.
+        </p>
+        <a href="index.html" class="btn btn-secondary">← Retour à l'accueil</a>
+        &nbsp;
+        <a href="benevole.html" class="btn btn-primary">Nouvelle inscription</a>
+      </div>
+
+      <!-- ====== FORM CARD ====== -->
+      <div id="form-card" class="form-card">
+        <div class="form-header">
+          <h2>🤝 Devenir bénévole</h2>
+          <p>
+            Remplissez ce formulaire pour vous inscrire sur un créneau.
+            Tous les champs marqués <span style="color:var(--color-secondary)">*</span> sont obligatoires.
+          </p>
+        </div>
+
+        <!-- Alerte d'erreur globale -->
+        <div id="alert-error" class="alert alert-danger hidden" role="alert" aria-live="assertive">
+          <span class="alert-icon" aria-hidden="true">⚠️</span>
+          <span class="alert-message">Une erreur est survenue.</span>
+        </div>
+
+        <form id="registration-form" novalidate autocomplete="on">
+
+          <!-- Section 1 : Vos coordonnées -->
+          <fieldset class="form-section">
+            <legend class="form-section-title">1. Vos coordonnées</legend>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="firstName">
+                  Prénom <span class="required" aria-hidden="true">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="firstName"
+                  name="firstName"
+                  autocomplete="given-name"
+                  placeholder="Ex : Marie"
+                  aria-required="true"
+                  aria-describedby="error-firstName"
+                />
+                <span id="error-firstName" class="form-error" role="alert"></span>
+              </div>
+
+              <div class="form-group">
+                <label for="lastName">
+                  Nom <span class="required" aria-hidden="true">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="lastName"
+                  name="lastName"
+                  autocomplete="family-name"
+                  placeholder="Ex : Dupont"
+                  aria-required="true"
+                  aria-describedby="error-lastName"
+                />
+                <span id="error-lastName" class="form-error" role="alert"></span>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="contact">
+                Email ou téléphone <span class="required" aria-hidden="true">*</span>
+              </label>
+              <input
+                type="text"
+                id="contact"
+                name="contact"
+                autocomplete="email"
+                placeholder="Ex : marie@email.fr ou 06 12 34 56 78"
+                aria-required="true"
+                aria-describedby="error-contact contact-note"
+              />
+              <span id="error-contact" class="form-error" role="alert"></span>
+              <span id="contact-note" class="form-note">Nous utiliserons ce contact pour vous envoyer les informations pratiques.</span>
+            </div>
+          </fieldset>
+
+          <!-- Section 2 : Votre mission -->
+          <fieldset class="form-section">
+            <legend class="form-section-title">2. Votre mission &amp; créneau</legend>
+
+            <div class="form-group">
+              <label for="mission">
+                Mission souhaitée <span class="required" aria-hidden="true">*</span>
+              </label>
+              <select
+                id="mission"
+                name="mission"
+                aria-required="true"
+                aria-describedby="error-mission"
+              >
+                <option value="">— Choisir une mission —</option>
+              </select>
+              <span id="error-mission" class="form-error" role="alert"></span>
+            </div>
+
+            <div class="form-group">
+              <label for="slot">
+                Créneau <span class="required" aria-hidden="true">*</span>
+              </label>
+              <select
+                id="slot"
+                name="slot"
+                aria-required="true"
+                aria-describedby="error-slot"
+              >
+                <option value="">— Choisir un créneau —</option>
+              </select>
+              <span id="error-slot" class="form-error" role="alert"></span>
+              <span class="form-note">Seuls les créneaux encore disponibles sont affichés.</span>
+            </div>
+          </fieldset>
+
+          <!-- Section 3 : Commentaire -->
+          <fieldset class="form-section">
+            <legend class="form-section-title">3. Informations complémentaires <span style="font-weight:400;text-transform:none;font-size:0.8rem">(facultatif)</span></legend>
+
+            <div class="form-group">
+              <label for="comment">Commentaire</label>
+              <textarea
+                id="comment"
+                name="comment"
+                placeholder="Contraintes horaires, compétences particulières, questions…"
+                aria-describedby="comment-note"
+                rows="3"
+              ></textarea>
+              <span id="comment-note" class="form-note">Maximum 500 caractères.</span>
+            </div>
+          </fieldset>
+
+          <!-- Submit -->
+          <button type="submit" id="submit-btn" class="btn btn-primary btn-block" style="font-size:1rem;padding:0.85rem">
+            <span class="spinner" style="display:none" aria-hidden="true"></span>
+            <span class="btn-label">Confirmer mon inscription</span>
+          </button>
+
+          <p style="font-size:0.78rem;color:var(--color-text-muted);margin-top:0.75rem;text-align:center">
+            Vos données sont utilisées uniquement pour organiser les bénévoles de cet événement.
+          </p>
+
+        </form>
+      </div><!-- /form-card -->
+
+    </div><!-- /form-container -->
+  </main>
+
+  <!-- ====== FOOTER ====== -->
+  <footer>
+    <p>⚾ Challenge de France Baseball 2026 · Toulouse &nbsp;|&nbsp;
+       <a href="index.html">Accueil</a>
+    </p>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="js/data.js"></script>
+  <script src="js/form.js"></script>
+
+</body>
+</html>
