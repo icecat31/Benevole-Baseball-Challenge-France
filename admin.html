@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Administration — Bénévoles Challenge de France 2026</title>
+  <link rel="stylesheet" href="css/main.css" />
+  <link rel="stylesheet" href="css/admin.css" />
+</head>
+<body>
+
+  <!-- ====== HEADER ====== -->
+  <header>
+    <nav class="navbar" aria-label="Navigation principale">
+      <a href="index.html" class="navbar-brand" aria-label="Accueil">
+        <span class="brand-emoji" aria-hidden="true">⚾</span>
+        <span>
+          <span class="brand-text">Challenge de France 2026</span>
+          <span class="brand-sub">Administration</span>
+        </span>
+      </a>
+      <div class="navbar-links">
+        <a href="index.html">← Site public</a>
+        <button id="logout-btn" class="btn btn-sm" style="background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.4)" aria-label="Se déconnecter">
+          🔓 Déconnexion
+        </button>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+
+    <!-- ====== LOGIN ====== -->
+    <section id="admin-login" class="admin-login-page" style="display:flex" aria-labelledby="login-title">
+      <div class="login-card">
+        <div class="login-icon" aria-hidden="true">🔐</div>
+        <h2 id="login-title">Accès Administration</h2>
+        <p>Entrez le mot de passe pour accéder au tableau de bord.</p>
+
+        <div id="login-error" class="alert alert-danger hidden" role="alert">
+          <span class="alert-icon" aria-hidden="true">⚠️</span>
+          <span>Mot de passe incorrect.</span>
+        </div>
+
+        <form id="login-form" novalidate>
+          <div class="form-group" style="text-align:left">
+            <label for="password">Mot de passe</label>
+            <input
+              type="password"
+              id="password"
+              name="password"
+              autocomplete="current-password"
+              placeholder="••••••••••"
+              aria-required="true"
+              required
+            />
+          </div>
+          <button type="submit" class="btn btn-primary btn-block" style="margin-top:0.5rem">
+            Accéder au tableau de bord
+          </button>
+        </form>
+
+        <p style="font-size:0.75rem;color:var(--color-text-muted);margin-top:1rem">
+          ⚠️ Cette protection est destinée au MVP. Pour un site en production, activez Supabase Auth.
+        </p>
+      </div>
+    </section>
+
+    <!-- ====== DASHBOARD ====== -->
+    <div id="admin-dashboard" style="display:none">
+      <div class="admin-main">
+
+        <!-- En-tête dashboard -->
+        <div class="admin-header">
+          <h1>📊 Tableau de bord bénévoles</h1>
+          <div class="admin-toolbar">
+            <button id="export-csv-btn" class="btn btn-sm btn-secondary" aria-label="Exporter les inscriptions en CSV">
+              📥 Exporter CSV
+            </button>
+          </div>
+        </div>
+
+        <!-- Stats rapides -->
+        <div class="stats-bar" style="margin-bottom:1.5rem" aria-label="Statistiques">
+          <div class="stat-card accent">
+            <div class="stat-number" id="admin-stat-reg">—</div>
+            <div class="stat-label">Inscriptions</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number" id="admin-stat-open">—</div>
+            <div class="stat-label">Créneaux dispo</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number" id="admin-stat-full">—</div>
+            <div class="stat-label">Créneaux complets</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number" id="admin-stat-places">—</div>
+            <div class="stat-label">Places total</div>
+          </div>
+        </div>
+
+        <!-- Onglets -->
+        <div class="admin-tabs" role="tablist" aria-label="Sections du tableau de bord">
+          <button class="tab-btn active" data-tab="tab-registrations" role="tab" aria-selected="true" aria-controls="tab-registrations">
+            📋 Inscriptions
+          </button>
+          <button class="tab-btn" data-tab="tab-slots" role="tab" aria-selected="false" aria-controls="tab-slots">
+            📅 Créneaux
+          </button>
+        </div>
+
+        <!-- ---- Onglet Inscriptions ---- -->
+        <div id="tab-registrations" class="tab-panel active" role="tabpanel" aria-labelledby="tab-btn-registrations">
+
+          <!-- Filtres -->
+          <div class="filter-bar" style="margin-bottom:1rem" aria-label="Filtres des inscriptions">
+            <select id="admin-filter-mission" aria-label="Filtrer par mission">
+              <option value="all">Toutes les missions</option>
+            </select>
+            <select id="admin-filter-date" aria-label="Filtrer par date">
+              <option value="all">Toutes les dates</option>
+            </select>
+          </div>
+
+          <!-- Tableau -->
+          <div class="table-wrapper">
+            <table aria-label="Liste des inscriptions bénévoles">
+              <thead>
+                <tr>
+                  <th scope="col">Nom</th>
+                  <th scope="col">Contact</th>
+                  <th scope="col">Mission</th>
+                  <th scope="col">Créneau</th>
+                  <th scope="col">Commentaire</th>
+                  <th scope="col">Inscrit le</th>
+                  <th scope="col"><span class="sr-only">Actions</span></th>
+                </tr>
+              </thead>
+              <tbody id="reg-tbody" aria-live="polite">
+                <tr>
+                  <td colspan="7" style="text-align:center;padding:2rem;color:var(--color-text-muted)">
+                    Chargement…
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ---- Onglet Créneaux ---- -->
+        <div id="tab-slots" class="tab-panel" role="tabpanel">
+          <div id="slots-admin-container" aria-live="polite">
+            <p style="color:var(--color-text-muted)">Chargement…</p>
+          </div>
+        </div>
+
+      </div><!-- /admin-main -->
+    </div><!-- /admin-dashboard -->
+
+  </main>
+
+  <!-- ====== MODAL SUPPRESSION ====== -->
+  <div id="delete-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="delete-modal-title">
+    <div class="modal">
+      <h3 id="delete-modal-title">⚠️ Confirmer la suppression</h3>
+      <p>Cette action est irréversible. Êtes-vous sûr(e) de vouloir supprimer cette inscription ?</p>
+      <div class="modal-actions">
+        <button id="delete-cancel-btn" class="btn btn-sm" style="background:#eee;color:var(--color-text);border:none">
+          Annuler
+        </button>
+        <button id="delete-confirm-btn" class="btn btn-sm" style="background:var(--color-danger);color:white;border:none">
+          Supprimer
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== FOOTER ====== -->
+  <footer>
+    <p>⚾ Challenge de France Baseball 2026 · Toulouse — Administration &nbsp;|&nbsp;
+       <a href="index.html">Retour au site public</a>
+    </p>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="js/data.js"></script>
+  <script src="js/admin.js"></script>
+
+  <style>
+    /* Accessibilité : classe sr-only */
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0,0,0,0);
+      white-space: nowrap;
+      border: 0;
+    }
+  </style>
+
+</body>
+</html>
