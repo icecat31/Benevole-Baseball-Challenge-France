@@ -1,0 +1,12 @@
+# Environment files (secrets)
+.env
+.env.local
+.env.*.local
+
+# Keep templates versioned
+!.env.example
+
+# OS / Editor noise
+.DS_Store
+Thumbs.db
+.vscode/
