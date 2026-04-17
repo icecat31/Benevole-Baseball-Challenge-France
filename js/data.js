@@ -22,14 +22,17 @@ const CONFIG = {
   adminPasswordKey: 'bcf2026_admin_pwd',
   volunteerUsersKey: 'bcf2026_users',
   volunteerSessionKey: 'bcf2026_user_session',
+  volunteerSessionUserKey: 'bcf2026_user_session_data',
   defaultAdminPassword: 'challenge2026',
 
   // [SUPABASE] Remplacer par vos vraies valeurs quand vous connecterez Supabase
   supabase: {
-    url: '',
-    anonKey: '',
+    url: (typeof window !== 'undefined' && window.SUPABASE_URL) ? window.SUPABASE_URL : '',
+    anonKey: (typeof window !== 'undefined' && window.SUPABASE_ANON_KEY) ? window.SUPABASE_ANON_KEY : '',
   },
 };
+
+const ALLOWED_DATES = ['2026-05-06', '2026-05-07', '2026-05-08', '2026-05-09'];
 
 /* ================================================================
    MISSIONS
@@ -119,6 +122,112 @@ function clearVolunteerSessionFromStorage() {
   localStorage.removeItem(CONFIG.volunteerSessionKey);
 }
 
+/**
+ * Enregistre les informations de session benevole.
+ * @param {Object} user
+ */
+function saveVolunteerSessionUserToStorage(user) {
+  localStorage.setItem(CONFIG.volunteerSessionUserKey, JSON.stringify(user));
+}
+
+/**
+ * Charge les informations de session benevole.
+ * @returns {Object|null}
+ */
+function loadVolunteerSessionUserFromStorage() {
+  const raw = localStorage.getItem(CONFIG.volunteerSessionUserKey);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch (e) {
+    console.error('Erreur lecture session utilisateur:', e);
+    return null;
+  }
+}
+
+/**
+ * Supprime les informations de session benevole.
+ */
+function clearVolunteerSessionUserFromStorage() {
+  localStorage.removeItem(CONFIG.volunteerSessionUserKey);
+}
+
+/* ================================================================
+   HELPERS SUPABASE (REST)
+   ================================================================ */
+
+function isSupabaseEnabled() {
+  return !!(CONFIG.supabase.url && CONFIG.supabase.anonKey);
+}
+
+function normalizeSupabaseUrl(url) {
+  return String(url || '').replace(/\/+$/, '');
+}
+
+function buildSupabaseRestUrl(table, query) {
+  const base = normalizeSupabaseUrl(CONFIG.supabase.url);
+  const qs = query ? `?${query}` : '';
+  return `${base}/rest/v1/${table}${qs}`;
+}
+
+async function supabaseRequest({ method = 'GET', table, query = '', body, prefer = 'return=representation' }) {
+  const headers = {
+    apikey: CONFIG.supabase.anonKey,
+    Authorization: `Bearer ${CONFIG.supabase.anonKey}`,
+  };
+
+  if (method !== 'GET' && method !== 'DELETE') {
+    headers['Content-Type'] = 'application/json';
+  }
+  if (prefer) {
+    headers.Prefer = prefer;
+  }
+
+  const response = await fetch(buildSupabaseRestUrl(table, query), {
+    method,
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+
+  const text = await response.text();
+  const payload = text ? JSON.parse(text) : null;
+
+  if (!response.ok) {
+    const err = new Error(payload && payload.message ? payload.message : 'Erreur Supabase');
+    err.details = payload;
+    throw err;
+  }
+
+  return payload;
+}
+
+function mapRegistrationRow(row) {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    firstName: row.first_name,
+    lastName: row.last_name,
+    date: row.date,
+    mission: row.mission,
+    startTime: row.start_time,
+    endTime: row.end_time,
+    contact: row.contact,
+    comment: row.comment || '',
+    submittedAt: row.submitted_at,
+  };
+}
+
+function mapUserRow(row) {
+  return {
+    id: row.id,
+    firstName: row.first_name,
+    lastName: row.last_name,
+    contact: row.contact,
+    password: row.password,
+    createdAt: row.created_at,
+  };
+}
+
 /* ================================================================
    DATA SERVICE — Interface publique
    ================================================================ */
@@ -132,6 +241,18 @@ const DataService = {
  * @returns {Promise<Array>}
  */
 async getRegistrations() {
+  if (isSupabaseEnabled()) {
+    try {
+      const rows = await supabaseRequest({
+        table: 'registrations',
+        query: 'select=*&order=submitted_at.desc',
+      });
+      return Array.isArray(rows) ? rows.map(mapRegistrationRow) : [];
+    } catch (err) {
+      console.error('Erreur Supabase getRegistrations, fallback localStorage:', err);
+    }
+  }
+
   return loadRegistrationsFromStorage();
 },
 
@@ -162,8 +283,7 @@ async markAvailability(input) {
     return { success: false, error: 'Données incomplètes.' };
   }
 
-  const allowedDates = ['2026-05-06', '2026-05-07', '2026-05-08', '2026-05-09'];
-  if (!allowedDates.includes(date)) {
+  if (!ALLOWED_DATES.includes(date)) {
     return { success: false, error: 'Date invalide.' };
   }
 
@@ -176,10 +296,57 @@ async markAvailability(input) {
     return { success: false, error: 'L\'heure de fin doit être après l\'heure de début.' };
   }
 
-  // Vérifier pas de doublon (même date, mission, créneau horaire)
+  if (isSupabaseEnabled()) {
+    try {
+      const duplicateCheckQuery = [
+        'select=id',
+        `user_id=eq.${encodeURIComponent(user.id)}`,
+        `date=eq.${encodeURIComponent(date)}`,
+        `mission=eq.${encodeURIComponent(mission)}`,
+        `start_time=eq.${encodeURIComponent(startTime)}`,
+        `end_time=eq.${encodeURIComponent(endTime)}`,
+        'limit=1',
+      ].join('&');
+
+      const existing = await supabaseRequest({
+        table: 'registrations',
+        query: duplicateCheckQuery,
+        prefer: '',
+      });
+      if (Array.isArray(existing) && existing.length > 0) {
+        return { success: false, error: 'Vous êtes déjà marqué disponible pour ce créneau.' };
+      }
+
+      const rows = await supabaseRequest({
+        method: 'POST',
+        table: 'registrations',
+        body: {
+          user_id: user.id,
+          first_name: user.firstName,
+          last_name: user.lastName,
+          contact: user.contact,
+          date,
+          mission,
+          start_time: startTime,
+          end_time: endTime,
+          comment: String(input.comment || '').trim(),
+        },
+      });
+
+      const created = Array.isArray(rows) && rows.length ? rows[0] : null;
+      return { success: true, id: created ? created.id : undefined };
+    } catch (err) {
+      console.error('Erreur Supabase markAvailability, fallback localStorage:', err);
+      if (err && err.message && /duplicate|unique|already/i.test(err.message)) {
+        return { success: false, error: 'Vous êtes déjà marqué disponible pour ce créneau.' };
+      }
+    }
+  }
+
+  // Fallback localStorage
   const registrations = loadRegistrationsFromStorage();
   const alreadyExists = registrations.some(
-    r => r.userId === user.id && r.date === date && r.mission === mission && 
+    r => r.userId === user.id && r.date === date && r.mission === mission &&
          r.startTime === startTime && r.endTime === endTime
   );
   if (alreadyExists) {
@@ -218,6 +385,29 @@ async unmarkAvailability(registrationId) {
     return { success: false, error: 'Connexion requise.' };
   }
 
+  if (isSupabaseEnabled()) {
+    try {
+      const query = [
+        `id=eq.${encodeURIComponent(registrationId)}`,
+        `user_id=eq.${encodeURIComponent(user.id)}`,
+        'select=id',
+      ].join('&');
+
+      const deleted = await supabaseRequest({
+        method: 'DELETE',
+        table: 'registrations',
+        query,
+      });
+
+      if (!Array.isArray(deleted) || deleted.length === 0) {
+        return { success: false, error: 'Enregistrement introuvable.' };
+      }
+      return { success: true };
+    } catch (err) {
+      console.error('Erreur Supabase unmarkAvailability, fallback localStorage:', err);
+    }
+  }
+
   const registrations = loadRegistrationsFromStorage();
   const idx = registrations.findIndex(r => r.id === registrationId);
   if (idx === -1) {
@@ -253,18 +443,9 @@ async unmarkAvailability(registrationId) {
     return MISSIONS.find(m => m.id === id);
   },
 
-  /**
-   * Récupère une mission par son identifiant.
-   * @param {string} id
-   * @returns {Object|undefined}
-   */
-  getMissionById(id) {
-    return MISSIONS.find(m => m.id === id);
-  },
-
   /* ---- Auth benevole (MVP cote client) ---- */
 
-  registerVolunteerUser(payload) {
+  async registerVolunteerUser(payload) {
     const contact = String(payload.contact || '').trim().toLowerCase();
     const password = String(payload.password || '').trim();
     const firstName = String(payload.firstName || '').trim();
@@ -274,6 +455,41 @@ async unmarkAvailability(registrationId) {
       return { success: false, error: 'Informations de compte invalides.' };
     }
 
+    if (isSupabaseEnabled()) {
+      try {
+        const existing = await supabaseRequest({
+          table: 'volunteer_users',
+          query: `select=id&contact=eq.${encodeURIComponent(contact)}&limit=1`,
+          prefer: '',
+        });
+        if (Array.isArray(existing) && existing.length > 0) {
+          return { success: false, error: 'Un compte existe deja avec ce contact.' };
+        }
+
+        const rows = await supabaseRequest({
+          method: 'POST',
+          table: 'volunteer_users',
+          body: {
+            first_name: firstName,
+            last_name: lastName,
+            contact,
+            password,
+          },
+        });
+
+        const created = Array.isArray(rows) && rows.length ? mapUserRow(rows[0]) : null;
+        if (!created) {
+          return { success: false, error: 'Impossible de creer le compte.' };
+        }
+
+        saveVolunteerSessionToStorage(created.id);
+        saveVolunteerSessionUserToStorage(created);
+        return { success: true, id: created.id };
+      } catch (err) {
+        console.error('Erreur Supabase registerVolunteerUser, fallback localStorage:', err);
+      }
+    }
+
     const users = loadVolunteerUsersFromStorage();
     const alreadyExists = users.some(u => u.contact.toLowerCase() === contact);
     if (alreadyExists) {
@@ -281,42 +497,84 @@ async unmarkAvailability(registrationId) {
     }
 
     const id = 'usr-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
-    users.push({
+    const created = {
       id,
       firstName,
       lastName,
       contact,
       password,
       createdAt: new Date().toISOString(),
-    });
+    };
+    users.push(created);
     saveVolunteerUsersToStorage(users);
     saveVolunteerSessionToStorage(id);
+    saveVolunteerSessionUserToStorage(created);
 
     return { success: true, id };
   },
 
-  loginVolunteerUser(contact, password) {
-    const users = loadVolunteerUsersFromStorage();
+  async loginVolunteerUser(contact, password) {
     const normalizedContact = String(contact || '').trim().toLowerCase();
-    const user = users.find(u => u.contact.toLowerCase() === normalizedContact && u.password === String(password || ''));
+    const normalizedPassword = String(password || '');
+
+    if (isSupabaseEnabled()) {
+      try {
+        const rows = await supabaseRequest({
+          table: 'volunteer_users',
+          query: [
+            'select=*',
+            `contact=eq.${encodeURIComponent(normalizedContact)}`,
+            `password=eq.${encodeURIComponent(normalizedPassword)}`,
+            'limit=1',
+          ].join('&'),
+          prefer: '',
+        });
+
+        const user = Array.isArray(rows) && rows.length ? mapUserRow(rows[0]) : null;
+        if (!user) {
+          return { success: false, error: 'Contact ou mot de passe incorrect.' };
+        }
+
+        saveVolunteerSessionToStorage(user.id);
+        saveVolunteerSessionUserToStorage(user);
+        return { success: true, user };
+      } catch (err) {
+        console.error('Erreur Supabase loginVolunteerUser, fallback localStorage:', err);
+      }
+    }
+
+    const users = loadVolunteerUsersFromStorage();
+    const user = users.find(u => u.contact.toLowerCase() === normalizedContact && u.password === normalizedPassword);
 
     if (!user) {
       return { success: false, error: 'Contact ou mot de passe incorrect.' };
     }
 
     saveVolunteerSessionToStorage(user.id);
+    saveVolunteerSessionUserToStorage(user);
     return { success: true, user };
   },
 
   logoutVolunteerUser() {
     clearVolunteerSessionFromStorage();
+    clearVolunteerSessionUserFromStorage();
   },
 
   getCurrentVolunteerUser() {
+    const sessionUser = loadVolunteerSessionUserFromStorage();
+    if (sessionUser && sessionUser.id) {
+      return sessionUser;
+    }
+
     const userId = loadVolunteerSessionFromStorage();
     if (!userId) return null;
+
     const users = loadVolunteerUsersFromStorage();
-    return users.find(u => u.id === userId) || null;
+    const user = users.find(u => u.id === userId) || null;
+    if (user) {
+      saveVolunteerSessionUserToStorage(user);
+    }
+    return user;
   },
 
   isVolunteerLoggedIn() {
@@ -334,6 +592,44 @@ async unmarkAvailability(registrationId) {
     // Les "slots" sont maintenant des disponibilités groupées par jour/mission
     // Génération dynamique pour la page d'accueil
     return [];
+  },
+
+  /**
+   * Suppression admin d'une inscription par ID.
+   * @param {string} registrationId
+   * @returns {Promise<{success: boolean, error?: string}>}
+   */
+  async deleteRegistration(registrationId) {
+    if (!registrationId) {
+      return { success: false, error: 'ID manquant.' };
+    }
+
+    if (isSupabaseEnabled()) {
+      try {
+        const deleted = await supabaseRequest({
+          method: 'DELETE',
+          table: 'registrations',
+          query: `id=eq.${encodeURIComponent(registrationId)}&select=id`,
+        });
+
+        if (!Array.isArray(deleted) || deleted.length === 0) {
+          return { success: false, error: 'Enregistrement introuvable.' };
+        }
+
+        return { success: true };
+      } catch (err) {
+        console.error('Erreur Supabase deleteRegistration, fallback localStorage:', err);
+      }
+    }
+
+    const registrations = loadRegistrationsFromStorage();
+    const next = registrations.filter(r => r.id !== registrationId);
+    if (next.length === registrations.length) {
+      return { success: false, error: 'Enregistrement introuvable.' };
+    }
+
+    saveRegistrationsToStorage(next);
+    return { success: true };
   },
 
   /* ---- Auth admin (simple, côté client uniquement) ---- */

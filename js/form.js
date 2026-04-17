@@ -142,7 +142,7 @@ async function handleLogin(e) {
   const contact = document.getElementById('login-contact').value.trim();
   const password = document.getElementById('login-password').value.trim();
 
-  const result = DataService.loginVolunteerUser(contact, password);
+  const result = await DataService.loginVolunteerUser(contact, password);
   if (!result.success) {
     showAuthAlert(result.error, true);
     return;
@@ -163,7 +163,7 @@ async function handleRegister(e) {
   const contact = document.getElementById('register-contact').value.trim();
   const password = document.getElementById('register-password').value.trim();
 
-  const result = DataService.registerVolunteerUser({
+  const result = await DataService.registerVolunteerUser({
     firstName,
     lastName,
     contact,
