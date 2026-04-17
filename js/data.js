@@ -20,6 +20,8 @@
 const CONFIG = {
   storageKey: 'bcf2026_registrations',
   adminPasswordKey: 'bcf2026_admin_pwd',
+  volunteerUsersKey: 'bcf2026_users',
+  volunteerSessionKey: 'bcf2026_user_session',
   defaultAdminPassword: 'challenge2026',
 
   // [SUPABASE] Remplacer par vos vraies valeurs quand vous connecterez Supabase
@@ -42,223 +44,9 @@ const MISSIONS = [
 ];
 
 /* ================================================================
-   CRÉNEAUX (données de démonstration)
-   ================================================================ */
-const DEFAULT_SLOTS = [
-  /* --- Vendredi 19 juin 2026 --- */
-  {
-    id: 'slot-1',
-    date: '2026-06-19',
-    startTime: '09:00',
-    endTime: '12:00',
-    mission: 'terrain',
-    maxVolunteers: 6,
-    status: 'open',
-    description: 'Montage et marquage des terrains',
-    registrations: [],
-  },
-  {
-    id: 'slot-2',
-    date: '2026-06-19',
-    startTime: '12:00',
-    endTime: '15:00',
-    mission: 'accueil',
-    maxVolunteers: 4,
-    status: 'open',
-    description: 'Accueil des équipes et enregistrement',
-    registrations: [],
-  },
-  {
-    id: 'slot-3',
-    date: '2026-06-19',
-    startTime: '11:00',
-    endTime: '14:00',
-    mission: 'sandwichs',
-    maxVolunteers: 4,
-    status: 'open',
-    description: 'Préparation des repas du midi',
-    registrations: [],
-  },
-  {
-    id: 'slot-4',
-    date: '2026-06-19',
-    startTime: '14:00',
-    endTime: '18:00',
-    mission: 'buvette',
-    maxVolunteers: 3,
-    status: 'open',
-    description: 'Tenue de la buvette du soir',
-    registrations: [],
-  },
-
-  /* --- Samedi 20 juin 2026 --- */
-  {
-    id: 'slot-5',
-    date: '2026-06-20',
-    startTime: '08:00',
-    endTime: '12:00',
-    mission: 'accueil',
-    maxVolunteers: 5,
-    status: 'open',
-    description: 'Accueil du public et distribution des programmes',
-    registrations: [],
-  },
-  {
-    id: 'slot-6',
-    date: '2026-06-20',
-    startTime: '08:00',
-    endTime: '12:00',
-    mission: 'buvette',
-    maxVolunteers: 4,
-    status: 'open',
-    description: 'Buvette du matin',
-    registrations: [],
-  },
-  {
-    id: 'slot-7',
-    date: '2026-06-20',
-    startTime: '11:30',
-    endTime: '14:00',
-    mission: 'sandwichs',
-    maxVolunteers: 5,
-    status: 'open',
-    description: 'Service des repas — pause midi',
-    registrations: [],
-  },
-  {
-    id: 'slot-8',
-    date: '2026-06-20',
-    startTime: '13:00',
-    endTime: '17:00',
-    mission: 'animation',
-    maxVolunteers: 4,
-    status: 'open',
-    description: 'Animation stands enfants et initiation baseball',
-    registrations: [],
-  },
-  {
-    id: 'slot-9',
-    date: '2026-06-20',
-    startTime: '14:00',
-    endTime: '20:00',
-    mission: 'buvette',
-    maxVolunteers: 4,
-    status: 'open',
-    description: 'Buvette de l\'après-midi',
-    registrations: [],
-  },
-  {
-    id: 'slot-10',
-    date: '2026-06-20',
-    startTime: '20:00',
-    endTime: '23:00',
-    mission: 'buvette',
-    maxVolunteers: 3,
-    status: 'open',
-    description: 'Soirée conviviale inter-clubs',
-    registrations: [],
-  },
-
-  /* --- Dimanche 21 juin 2026 --- */
-  {
-    id: 'slot-11',
-    date: '2026-06-21',
-    startTime: '08:00',
-    endTime: '12:00',
-    mission: 'accueil',
-    maxVolunteers: 4,
-    status: 'open',
-    description: 'Accueil public — demi-finales et finale',
-    registrations: [],
-  },
-  {
-    id: 'slot-12',
-    date: '2026-06-21',
-    startTime: '08:00',
-    endTime: '13:00',
-    mission: 'buvette',
-    maxVolunteers: 4,
-    status: 'open',
-    description: 'Buvette du matin — journée finale',
-    registrations: [],
-  },
-  {
-    id: 'slot-13',
-    date: '2026-06-21',
-    startTime: '12:00',
-    endTime: '14:00',
-    mission: 'sandwichs',
-    maxVolunteers: 4,
-    status: 'open',
-    description: 'Repas de midi — journée finale',
-    registrations: [],
-  },
-  {
-    id: 'slot-14',
-    date: '2026-06-21',
-    startTime: '14:00',
-    endTime: '18:00',
-    mission: 'animation',
-    maxVolunteers: 3,
-    status: 'open',
-    description: 'Animation et cérémonie de clôture',
-    registrations: [],
-  },
-  {
-    id: 'slot-15',
-    date: '2026-06-21',
-    startTime: '18:00',
-    endTime: '20:00',
-    mission: 'terrain',
-    maxVolunteers: 6,
-    status: 'open',
-    description: 'Démontage et rangement du terrain',
-    registrations: [],
-  },
-  {
-    id: 'slot-16',
-    date: '2026-06-19',
-    startTime: '09:00',
-    endTime: '18:00',
-    mission: 'autres',
-    maxVolunteers: 4,
-    status: 'open',
-    description: 'Logistique générale / aide polyvalente',
-    registrations: [],
-  },
-];
-
-/* ================================================================
    STORAGE HELPERS (localStorage)
    [SUPABASE] Ces fonctions seront remplacées par des appels Supabase
    ================================================================ */
-
-/**
- * Charge les créneaux depuis localStorage.
- * Si aucune donnée, initialise avec DEFAULT_SLOTS.
- * @returns {Array}
- */
-function loadSlotsFromStorage() {
-  const raw = localStorage.getItem('bcf2026_slots');
-  if (raw) {
-    try {
-      return JSON.parse(raw);
-    } catch (e) {
-      console.error('Erreur lecture créneaux:', e);
-    }
-  }
-  // Initialiser avec les données de démo
-  saveSlotsToStorage(DEFAULT_SLOTS);
-  return JSON.parse(JSON.stringify(DEFAULT_SLOTS));
-}
-
-/**
- * Sauvegarde les créneaux dans localStorage.
- * @param {Array} slots
- */
-function saveSlotsToStorage(slots) {
-  localStorage.setItem('bcf2026_slots', JSON.stringify(slots));
-}
 
 /**
  * Charge les inscriptions depuis localStorage.
@@ -284,154 +72,167 @@ function saveRegistrationsToStorage(registrations) {
   localStorage.setItem(CONFIG.storageKey, JSON.stringify(registrations));
 }
 
+/**
+ * Charge les comptes benevoles depuis localStorage.
+ * @returns {Array}
+ */
+function loadVolunteerUsersFromStorage() {
+  const raw = localStorage.getItem(CONFIG.volunteerUsersKey);
+  if (raw) {
+    try {
+      return JSON.parse(raw);
+    } catch (e) {
+      console.error('Erreur lecture utilisateurs:', e);
+    }
+  }
+  return [];
+}
+
+/**
+ * Sauvegarde les comptes benevoles.
+ * @param {Array} users
+ */
+function saveVolunteerUsersToStorage(users) {
+  localStorage.setItem(CONFIG.volunteerUsersKey, JSON.stringify(users));
+}
+
+/**
+ * Lit la session benevole courante.
+ * @returns {string|null}
+ */
+function loadVolunteerSessionFromStorage() {
+  return localStorage.getItem(CONFIG.volunteerSessionKey);
+}
+
+/**
+ * Enregistre l'identifiant de session benevole.
+ * @param {string} userId
+ */
+function saveVolunteerSessionToStorage(userId) {
+  localStorage.setItem(CONFIG.volunteerSessionKey, userId);
+}
+
+/**
+ * Supprime la session benevole active.
+ */
+function clearVolunteerSessionFromStorage() {
+  localStorage.removeItem(CONFIG.volunteerSessionKey);
+}
+
 /* ================================================================
    DATA SERVICE — Interface publique
    ================================================================ */
 const DataService = {
 
-  /* ---- Créneaux ---- */
+  /* ---- Missions ---- */
 
-  /**
-   * Récupère tous les créneaux.
-   * [SUPABASE] supabase.from('slots').select('*')
-   * @returns {Promise<Array>}
-   */
-  async getSlots() {
-    return loadSlotsFromStorage();
-  },
+/**
+ * Récupère toutes les inscriptions.
+ * [SUPABASE] supabase.from('registrations').select('*')
+ * @returns {Promise<Array>}
+ */
+async getRegistrations() {
+  return loadRegistrationsFromStorage();
+},
 
-  /**
-   * Récupère un créneau par son identifiant.
-   * [SUPABASE] supabase.from('slots').select('*').eq('id', id).single()
-   * @param {string} id
-   * @returns {Promise<Object|null>}
-   */
-  async getSlotById(id) {
-    const slots = loadSlotsFromStorage();
-    return slots.find(s => s.id === id) || null;
-  },
+/**
+ * Marquer une disponibilité (nouvelle inscription).
+ * Structure: {id, userId, date, mission, startTime, endTime, contact, comment, submittedAt}
+ *
+ * @param {Object} input
+ * @param {string} input.date      - Date (YYYY-MM-DD)
+ * @param {string} input.mission   - ID de mission
+ * @param {string} input.startTime - Heure début (HH:MM)
+ * @param {string} input.endTime   - Heure fin (HH:MM)
+ * @param {string} [input.comment] - Commentaire libre
+ * @returns {Promise<{success: boolean, error?: string, id?: string}>}
+ */
+async markAvailability(input) {
+  const user = this.getCurrentVolunteerUser();
+  if (!user) {
+    return { success: false, error: 'Connexion requise.' };
+  }
 
-  /**
-   * Mise à jour du statut d'un créneau.
-   * [SUPABASE] supabase.from('slots').update({ status }).eq('id', id)
-   * @param {string} id
-   * @param {string} status  'open' | 'full' | 'closed'
-   * @returns {Promise<boolean>}
-   */
-  async updateSlotStatus(id, status) {
-    const slots = loadSlotsFromStorage();
-    const idx = slots.findIndex(s => s.id === id);
-    if (idx === -1) return false;
-    slots[idx].status = status;
-    saveSlotsToStorage(slots);
-    return true;
-  },
+  const date = String(input.date || '').trim();
+  const mission = String(input.mission || '').trim();
+  const startTime = String(input.startTime || '').trim();
+  const endTime = String(input.endTime || '').trim();
 
-  /* ---- Inscriptions ---- */
+  if (!date || !mission || !startTime || !endTime) {
+    return { success: false, error: 'Données incomplètes.' };
+  }
 
-  /**
-   * Récupère toutes les inscriptions.
-   * [SUPABASE] supabase.from('registrations').select('*')
-   * @returns {Promise<Array>}
-   */
-  async getRegistrations() {
-    return loadRegistrationsFromStorage();
-  },
+  const allowedDates = ['2026-05-06', '2026-05-07', '2026-05-08', '2026-05-09'];
+  if (!allowedDates.includes(date)) {
+    return { success: false, error: 'Date invalide.' };
+  }
 
-  /**
-   * Soumet une nouvelle inscription bénévole.
-   * [SUPABASE] supabase.from('registrations').insert([registration])
-   *
-   * @param {Object} formData - Données du formulaire
-   * @param {string} formData.firstName    - Prénom
-   * @param {string} formData.lastName     - Nom
-   * @param {string} formData.contact      - Email ou téléphone
-   * @param {string} formData.mission      - Identifiant de mission
-   * @param {string} formData.slotId       - Identifiant du créneau
-   * @param {string} [formData.comment]    - Commentaire libre
-   * @returns {Promise<{success: boolean, error?: string, id?: string}>}
-   */
-  async submitRegistration(formData) {
-    const slots = loadSlotsFromStorage();
-    const slot = slots.find(s => s.id === formData.slotId);
+  if (!MISSIONS.some(m => m.id === mission)) {
+    return { success: false, error: 'Mission inconnue.' };
+  }
 
-    if (!slot) {
-      return { success: false, error: 'Créneau introuvable.' };
-    }
+  // Validation des horaires
+  if (endTime <= startTime) {
+    return { success: false, error: 'L\'heure de fin doit être après l\'heure de début.' };
+  }
 
-    if (slot.status !== 'open') {
-      return { success: false, error: 'Ce créneau n\'est plus disponible.' };
-    }
+  // Vérifier pas de doublon (même date, mission, créneau horaire)
+  const registrations = loadRegistrationsFromStorage();
+  const alreadyExists = registrations.some(
+    r => r.userId === user.id && r.date === date && r.mission === mission && 
+         r.startTime === startTime && r.endTime === endTime
+  );
+  if (alreadyExists) {
+    return { success: false, error: 'Vous êtes déjà marqué disponible pour ce créneau.' };
+  }
 
-    const currentCount = slot.registrations ? slot.registrations.length : 0;
-    if (currentCount >= slot.maxVolunteers) {
-      return { success: false, error: 'Ce créneau est complet.' };
-    }
+  const id = 'reg-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
+  registrations.push({
+    id,
+    userId: user.id,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    date,
+    mission,
+    startTime,
+    endTime,
+    contact: user.contact,
+    comment: String(input.comment || '').trim(),
+    submittedAt: new Date().toISOString(),
+  });
 
-    // Vérifier si la personne n'est pas déjà inscrite sur ce créneau
-    const registrations = loadRegistrationsFromStorage();
-    const alreadyRegistered = registrations.some(
-      r => r.slotId === formData.slotId &&
-           r.contact.toLowerCase() === formData.contact.toLowerCase()
-    );
-    if (alreadyRegistered) {
-      return { success: false, error: 'Vous êtes déjà inscrit(e) sur ce créneau avec ce contact.' };
-    }
+  saveRegistrationsToStorage(registrations);
+  return { success: true, id };
+},
 
-    const id = 'reg-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
-    const registration = {
-      id,
-      firstName: formData.firstName.trim(),
-      lastName: formData.lastName.trim(),
-      contact: formData.contact.trim(),
-      mission: formData.mission,
-      slotId: formData.slotId,
-      comment: (formData.comment || '').trim(),
-      submittedAt: new Date().toISOString(),
-    };
+/**
+ * Retire une disponibilité (supprime une inscription).
+ * L'utilisateur peut seulement supprimer ses propres inscriptions.
+ *
+ * @param {string} registrationId
+ * @returns {Promise<{success: boolean, error?: string}>}
+ */
+async unmarkAvailability(registrationId) {
+  const user = this.getCurrentVolunteerUser();
+  if (!user) {
+    return { success: false, error: 'Connexion requise.' };
+  }
 
-    registrations.push(registration);
-    saveRegistrationsToStorage(registrations);
+  const registrations = loadRegistrationsFromStorage();
+  const idx = registrations.findIndex(r => r.id === registrationId);
+  if (idx === -1) {
+    return { success: false, error: 'Enregistrement introuvable.' };
+  }
 
-    // Mettre à jour la liste dans le créneau
-    if (!slot.registrations) slot.registrations = [];
-    slot.registrations.push(id);
-    if (slot.registrations.length >= slot.maxVolunteers) {
-      slot.status = 'full';
-    }
-    saveSlotsToStorage(slots);
+  const reg = registrations[idx];
+  if (reg.userId !== user.id) {
+    return { success: false, error: 'Vous pouvez seulement supprimer vos propres entrées.' };
+  }
 
-    return { success: true, id };
-  },
-
-  /**
-   * Supprime une inscription (admin).
-   * [SUPABASE] supabase.from('registrations').delete().eq('id', id)
-   * @param {string} id
-   * @returns {Promise<boolean>}
-   */
-  async deleteRegistration(id) {
-    const registrations = loadRegistrationsFromStorage();
-    const idx = registrations.findIndex(r => r.id === id);
-    if (idx === -1) return false;
-
-    const reg = registrations[idx];
-    registrations.splice(idx, 1);
-    saveRegistrationsToStorage(registrations);
-
-    // Mise à jour du créneau
-    const slots = loadSlotsFromStorage();
-    const slot = slots.find(s => s.id === reg.slotId);
-    if (slot && slot.registrations) {
-      slot.registrations = slot.registrations.filter(rid => rid !== id);
-      if (slot.status === 'full' && slot.registrations.length < slot.maxVolunteers) {
-        slot.status = 'open';
-      }
-      saveSlotsToStorage(slots);
-    }
-
-    return true;
-  },
+  registrations.splice(idx, 1);
+  saveRegistrationsToStorage(registrations);
+  return { success: true };
+},
 
   /* ---- Missions ---- */
 
@@ -450,6 +251,89 @@ const DataService = {
    */
   getMissionById(id) {
     return MISSIONS.find(m => m.id === id);
+  },
+
+  /**
+   * Récupère une mission par son identifiant.
+   * @param {string} id
+   * @returns {Object|undefined}
+   */
+  getMissionById(id) {
+    return MISSIONS.find(m => m.id === id);
+  },
+
+  /* ---- Auth benevole (MVP cote client) ---- */
+
+  registerVolunteerUser(payload) {
+    const contact = String(payload.contact || '').trim().toLowerCase();
+    const password = String(payload.password || '').trim();
+    const firstName = String(payload.firstName || '').trim();
+    const lastName = String(payload.lastName || '').trim();
+
+    if (!firstName || !lastName || !contact || password.length < 6) {
+      return { success: false, error: 'Informations de compte invalides.' };
+    }
+
+    const users = loadVolunteerUsersFromStorage();
+    const alreadyExists = users.some(u => u.contact.toLowerCase() === contact);
+    if (alreadyExists) {
+      return { success: false, error: 'Un compte existe deja avec ce contact.' };
+    }
+
+    const id = 'usr-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
+    users.push({
+      id,
+      firstName,
+      lastName,
+      contact,
+      password,
+      createdAt: new Date().toISOString(),
+    });
+    saveVolunteerUsersToStorage(users);
+    saveVolunteerSessionToStorage(id);
+
+    return { success: true, id };
+  },
+
+  loginVolunteerUser(contact, password) {
+    const users = loadVolunteerUsersFromStorage();
+    const normalizedContact = String(contact || '').trim().toLowerCase();
+    const user = users.find(u => u.contact.toLowerCase() === normalizedContact && u.password === String(password || ''));
+
+    if (!user) {
+      return { success: false, error: 'Contact ou mot de passe incorrect.' };
+    }
+
+    saveVolunteerSessionToStorage(user.id);
+    return { success: true, user };
+  },
+
+  logoutVolunteerUser() {
+    clearVolunteerSessionFromStorage();
+  },
+
+  getCurrentVolunteerUser() {
+    const userId = loadVolunteerSessionFromStorage();
+    if (!userId) return null;
+    const users = loadVolunteerUsersFromStorage();
+    return users.find(u => u.id === userId) || null;
+  },
+
+  isVolunteerLoggedIn() {
+    return !!this.getCurrentVolunteerUser();
+  },
+
+  /* ---- Slots (lecture seule pour affichage) ---- */
+
+  /**
+   * Retourne les disponibilités sous forme de "slots" pour affichage.
+   * (Conversion pour compatibilité avec slots.js et admin.js)
+   * @returns {Promise<Array>}
+   */
+  async getSlots() {
+    // Les "slots" sont maintenant des disponibilités groupées par jour/mission
+    // Génération dynamique pour la page d'accueil
+    return [];
   },
 
   /* ---- Auth admin (simple, côté client uniquement) ---- */

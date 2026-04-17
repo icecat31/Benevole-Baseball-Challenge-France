@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Inscrivez-vous comme bénévole au Challenge de France de Baseball 2026 à Toulouse." />
   <title>S'inscrire — Bénévoles Challenge de France Baseball 2026</title>
-  <link rel="stylesheet" href="css/main.css" />
+  <link rel="stylesheet" href="css/main.css?v=20260415-1" />
 </head>
 <body>
 
@@ -13,7 +13,7 @@
   <header>
     <nav class="navbar" aria-label="Navigation principale">
       <a href="index.html" class="navbar-brand" aria-label="Accueil">
-        <span class="brand-emoji" aria-hidden="true">⚾</span>
+        <span class="brand-emoji" aria-hidden="true"></span>
         <span>
           <span class="brand-text">Challenge de France 2026</span>
           <span class="brand-sub">Bénévoles · Toulouse</span>
@@ -22,7 +22,6 @@
       <div class="navbar-links" role="navigation">
         <a href="index.html">Accueil</a>
         <a href="benevole.html" class="active">S'inscrire</a>
-        <a href="benevole.html" class="btn-cta">Je m'inscris ⚾</a>
       </div>
     </nav>
   </header>
@@ -35,173 +34,135 @@
         <a href="index.html">Accueil</a> › Devenir bénévole
       </nav>
 
-      <!-- ====== SUCCESS SCREEN ====== -->
-      <div id="success-screen" class="success-screen card" role="alert" aria-live="polite">
-        <div class="success-icon" aria-hidden="true">🎉</div>
-        <h3>Inscription confirmée !</h3>
-        <p>
-          Merci <strong class="success-name"></strong> !<br>
-          Votre inscription pour la mission <strong class="success-mission"></strong> a bien été enregistrée.<br>
-          Nous vous contacterons avec les détails.
-        </p>
-        <a href="index.html" class="btn btn-secondary">← Retour à l'accueil</a>
-        &nbsp;
-        <a href="benevole.html" class="btn btn-primary">Nouvelle inscription</a>
-      </div>
-
-      <!-- ====== FORM CARD ====== -->
-      <div id="form-card" class="form-card">
+      <section class="form-card" aria-labelledby="auth-title">
         <div class="form-header">
-          <h2>🤝 Devenir bénévole</h2>
-          <p>
-            Remplissez ce formulaire pour vous inscrire sur un créneau.
-            Tous les champs marqués <span style="color:var(--color-secondary)">*</span> sont obligatoires.
-          </p>
+          <h2 id="auth-title">Connexion bénévole</h2>
+          <p>Vous arrivez non connecté. Connectez-vous pour vous placer dans le calendrier, créer un créneau ou rejoindre un créneau existant.</p>
         </div>
 
-        <!-- Alerte d'erreur globale -->
-        <div id="alert-error" class="alert alert-danger hidden" role="alert" aria-live="assertive">
-          <span class="alert-icon" aria-hidden="true">⚠️</span>
+        <div id="auth-alert" class="alert alert-danger hidden" role="alert" aria-live="assertive">
+          <span class="alert-icon" aria-hidden="true"></span>
           <span class="alert-message">Une erreur est survenue.</span>
         </div>
 
-        <form id="registration-form" novalidate autocomplete="on">
+        <div id="user-session" class="planner-session hidden" aria-live="polite">
+          <div>
+            Connecté en tant que <strong id="session-name">—</strong>
+          </div>
+          <button id="logout-user-btn" class="btn btn-sm" type="button" style="background:#f0f3f9;border:1px solid var(--color-border)">Se déconnecter</button>
+        </div>
 
-          <!-- Section 1 : Vos coordonnées -->
-          <fieldset class="form-section">
-            <legend class="form-section-title">1. Vos coordonnées</legend>
+        <div id="auth-panel" class="auth-panel">
+          <div class="auth-tabs" role="tablist" aria-label="Connexion ou création de compte">
+            <button id="tab-login" class="auth-tab active" data-tab="login" role="tab" aria-selected="true" type="button">Connexion</button>
+            <button id="tab-register" class="auth-tab" data-tab="register" role="tab" aria-selected="false" type="button">Créer un compte</button>
+          </div>
 
+          <form id="login-form" class="auth-form" data-panel="login" autocomplete="on">
+            <div class="form-group">
+              <label for="login-contact">Email ou téléphone</label>
+              <input id="login-contact" name="contact" type="text" placeholder="Ex : marie@email.fr" required />
+            </div>
+            <div class="form-group">
+              <label for="login-password">Mot de passe</label>
+              <input id="login-password" name="password" type="password" placeholder="Votre mot de passe" required />
+            </div>
+            <button class="btn btn-primary btn-block" type="submit">Se connecter</button>
+          </form>
+
+          <form id="register-form" class="auth-form hidden" data-panel="register" autocomplete="on">
             <div class="form-row">
               <div class="form-group">
-                <label for="firstName">
-                  Prénom <span class="required" aria-hidden="true">*</span>
-                </label>
-                <input
-                  type="text"
-                  id="firstName"
-                  name="firstName"
-                  autocomplete="given-name"
-                  placeholder="Ex : Marie"
-                  aria-required="true"
-                  aria-describedby="error-firstName"
-                />
-                <span id="error-firstName" class="form-error" role="alert"></span>
+                <label for="register-firstName">Prénom</label>
+                <input id="register-firstName" name="firstName" type="text" placeholder="Ex : Marie" required />
               </div>
-
               <div class="form-group">
-                <label for="lastName">
-                  Nom <span class="required" aria-hidden="true">*</span>
-                </label>
-                <input
-                  type="text"
-                  id="lastName"
-                  name="lastName"
-                  autocomplete="family-name"
-                  placeholder="Ex : Dupont"
-                  aria-required="true"
-                  aria-describedby="error-lastName"
-                />
-                <span id="error-lastName" class="form-error" role="alert"></span>
+                <label for="register-lastName">Nom</label>
+                <input id="register-lastName" name="lastName" type="text" placeholder="Ex : Dupont" required />
               </div>
             </div>
-
             <div class="form-group">
-              <label for="contact">
-                Email ou téléphone <span class="required" aria-hidden="true">*</span>
-              </label>
-              <input
-                type="text"
-                id="contact"
-                name="contact"
-                autocomplete="email"
-                placeholder="Ex : marie@email.fr ou 06 12 34 56 78"
-                aria-required="true"
-                aria-describedby="error-contact contact-note"
-              />
-              <span id="error-contact" class="form-error" role="alert"></span>
-              <span id="contact-note" class="form-note">Nous utiliserons ce contact pour vous envoyer les informations pratiques.</span>
+              <label for="register-contact">Email ou téléphone</label>
+              <input id="register-contact" name="contact" type="text" placeholder="Ex : marie@email.fr" required />
             </div>
-          </fieldset>
-
-          <!-- Section 2 : Votre mission -->
-          <fieldset class="form-section">
-            <legend class="form-section-title">2. Votre mission &amp; créneau</legend>
-
             <div class="form-group">
-              <label for="mission">
-                Mission souhaitée <span class="required" aria-hidden="true">*</span>
-              </label>
-              <select
-                id="mission"
-                name="mission"
-                aria-required="true"
-                aria-describedby="error-mission"
-              >
-                <option value="">— Choisir une mission —</option>
-              </select>
-              <span id="error-mission" class="form-error" role="alert"></span>
+              <label for="register-password">Mot de passe</label>
+              <input id="register-password" name="password" type="password" minlength="6" placeholder="6 caractères minimum" required />
             </div>
+            <button class="btn btn-primary btn-block" type="submit">Créer mon compte</button>
+          </form>
+        </div>
+      </section>
 
+      <section id="planner-card" class="form-card hidden" aria-labelledby="planner-title" style="margin-top:1rem">
+        <div class="form-header">
+          <h2 id="planner-title">Calendrier de disponibilités</h2>
+          <p>Indiquez quand vous êtes disponible pour chaque mission. Tous les bénévoles peuvent voir qui est disponible à chaque moment.</p>
+        </div>
+
+        <div id="planner-alert" class="alert alert-info hidden" role="status" aria-live="polite">
+          <span class="alert-icon" aria-hidden="true">ℹ️</span>
+          <span class="alert-message">Information</span>
+        </div>
+
+        <div class="planner-layout">
+          <div class="planner-create card">
+            <h3>Me signaler disponible</h3>
             <div class="form-group">
-              <label for="slot">
-                Créneau <span class="required" aria-hidden="true">*</span>
-              </label>
-              <select
-                id="slot"
-                name="slot"
-                aria-required="true"
-                aria-describedby="error-slot"
-              >
-                <option value="">— Choisir un créneau —</option>
-              </select>
-              <span id="error-slot" class="form-error" role="alert"></span>
-              <span class="form-note">Seuls les créneaux encore disponibles sont affichés.</span>
+              <label for="planner-mission">Mission</label>
+              <select id="planner-mission" name="mission"></select>
             </div>
-          </fieldset>
-
-          <!-- Section 3 : Commentaire -->
-          <fieldset class="form-section">
-            <legend class="form-section-title">3. Informations complémentaires <span style="font-weight:400;text-transform:none;font-size:0.8rem">(facultatif)</span></legend>
-
             <div class="form-group">
-              <label for="comment">Commentaire</label>
-              <textarea
-                id="comment"
-                name="comment"
-                placeholder="Contraintes horaires, compétences particulières, questions…"
-                aria-describedby="comment-note"
-                rows="3"
-              ></textarea>
-              <span id="comment-note" class="form-note">Maximum 500 caractères.</span>
+              <label for="planner-date">Date</label>
+              <input id="planner-date" type="text" inputmode="numeric" placeholder="JJ/MM/AAAA" pattern="^\\d{2}/\\d{2}/\\d{4}$" />
+              <p class="form-note">Format attendu: JJ/MM/AAAA (du 06/05/2026 au 09/05/2026)</p>
             </div>
-          </fieldset>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="planner-start">Début</label>
+                <input id="planner-start" type="time" value="09:00" />
+              </div>
+              <div class="form-group">
+                <label for="planner-end">Fin</label>
+                <input id="planner-end" type="time" value="12:00" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="planner-description">Note (optionnel)</label>
+              <textarea id="planner-description" rows="2" placeholder="Ex : peut faire 2h seulement"></textarea>
+            </div>
+            <button id="create-slot-btn" class="btn btn-primary btn-block" type="button">Ajouter ma disponibilité</button>
+            <button id="cancel-edit-btn" class="btn btn-block hidden" type="button" style="margin-top:0.5rem;background:#eceff5;border:1px solid var(--color-border)">Annuler</button>
+          </div>
 
-          <!-- Submit -->
-          <button type="submit" id="submit-btn" class="btn btn-primary btn-block" style="font-size:1rem;padding:0.85rem">
-            <span class="spinner" style="display:none" aria-hidden="true"></span>
-            <span class="btn-label">Confirmer mon inscription</span>
-          </button>
+          <div class="planner-calendar card">
+            <div class="planner-calendar-head">
+              <h3>Vue calendrier à la minute (6 → 9 mai)</h3>
+            </div>
+            <div id="planner-calendar-grid" class="planner-calendar-grid" aria-live="polite"></div>
+          </div>
+        </div>
 
-          <p style="font-size:0.78rem;color:var(--color-text-muted);margin-top:0.75rem;text-align:center">
-            Vos données sont utilisées uniquement pour organiser les bénévoles de cet événement.
-          </p>
-
-        </form>
-      </div><!-- /form-card -->
+        <div class="planner-join card" style="margin-top:1rem">
+          <h3>Créneaux existants</h3>
+          <p class="form-note" style="margin-bottom:0.75rem">Cliquez sur un créneau pour vous ajouter s'il reste des places.</p>
+          <div id="join-slots-list"></div>
+        </div>
+      </section>
 
     </div><!-- /form-container -->
   </main>
 
   <!-- ====== FOOTER ====== -->
   <footer>
-    <p>⚾ Challenge de France Baseball 2026 · Toulouse &nbsp;|&nbsp;
+    <p>Challenge de France Baseball 2026 · Toulouse &nbsp;|&nbsp;
        <a href="index.html">Accueil</a>
     </p>
   </footer>
 
   <!-- Scripts -->
-  <script src="js/data.js"></script>
-  <script src="js/form.js"></script>
+  <script src="js/data.js?v=20260415-1"></script>
+  <script src="js/form.js?v=20260415-1"></script>
 
 </body>
 </html>

@@ -72,17 +72,14 @@ function showDashboard() {
    ================================================================ */
 async function loadDashboard() {
   try {
-    const [registrations, slots] = await Promise.all([
-      DataService.getRegistrations(),
-      DataService.getSlots(),
-    ]);
+    const registrations = await DataService.getRegistrations();
 
-    renderAdminStats(registrations, slots);
-    renderRegistrationsTab(registrations, slots);
-    renderSlotsTab(slots, registrations);
+    renderAdminStats(registrations);
+    renderRegistrationsTab(registrations);
+    renderAvailabilityTab(registrations);
     setupTabs();
-    setupExport(registrations, slots);
-    setupDeleteModal(registrations, slots);
+    setupExport(registrations);
+    setupDeleteModal(registrations);
   } catch (err) {
     console.error('Erreur chargement admin:', err);
   }
@@ -91,22 +88,22 @@ async function loadDashboard() {
 /* ================================================================
    Stats admin
    ================================================================ */
-function renderAdminStats(registrations, slots) {
+function renderAdminStats(registrations) {
   const totalReg    = registrations.length;
-  const openSlots   = slots.filter(s => s.status === 'open').length;
-  const fullSlots   = slots.filter(s => s.status === 'full').length;
-  const totalPlaces = slots.reduce((s, sl) => s + sl.maxVolunteers, 0);
+  const uniqueUsers = new Set(registrations.map(r => r.userId)).size;
 
   setText('admin-stat-reg',    totalReg);
-  setText('admin-stat-open',   openSlots);
-  setText('admin-stat-full',   fullSlots);
-  setText('admin-stat-places', totalPlaces);
+  setText('admin-stat-open',   totalReg);
+  setText('admin-stat-full',   uniqueUsers);
+  // Update label if needed
+  const label = document.getElementById('admin-stat-places-label');
+  if (label) label.textContent = 'Utilisateurs uniques';
 }
 
 /* ================================================================
-   Onglet inscriptions
+   Onglet inscriptions / disponibilités
    ================================================================ */
-function renderRegistrationsTab(registrations, slots) {
+function renderRegistrationsTab(registrations) {
   const tbody = document.getElementById('reg-tbody');
   if (!tbody) return;
 
@@ -120,25 +117,25 @@ function renderRegistrationsTab(registrations, slots) {
       filterMission.innerHTML += `<option value="${escapeHtml(m.id)}">${escapeHtml(m.icon)} ${escapeHtml(m.label)}</option>`;
     });
     filterMission.addEventListener('change', () =>
-      renderRegistrationRows(registrations, slots, filterMission.value, filterDate ? filterDate.value : 'all')
+      renderRegistrationRows(registrations, filterMission.value, filterDate ? filterDate.value : 'all')
     );
   }
 
   if (filterDate) {
     filterDate.innerHTML = '<option value="all">Toutes les dates</option>';
-    const dates = [...new Set(slots.map(s => s.date))].sort();
+    const dates = [...new Set(registrations.map(r => r.date))].sort();
     dates.forEach(d => {
       filterDate.innerHTML += `<option value="${escapeHtml(d)}">${escapeHtml(formatDate(d))}</option>`;
     });
     filterDate.addEventListener('change', () =>
-      renderRegistrationRows(registrations, slots, filterMission ? filterMission.value : 'all', filterDate.value)
+      renderRegistrationRows(registrations, filterMission ? filterMission.value : 'all', filterDate.value)
     );
   }
 
-  renderRegistrationRows(registrations, slots, 'all', 'all');
+  renderRegistrationRows(registrations, 'all', 'all');
 }
 
-function renderRegistrationRows(registrations, slots, missionFilter, dateFilter) {
+function renderRegistrationRows(registrations, missionFilter, dateFilter) {
   const tbody = document.getElementById('reg-tbody');
   if (!tbody) return;
 
@@ -149,28 +146,24 @@ function renderRegistrationRows(registrations, slots, missionFilter, dateFilter)
   }
 
   if (dateFilter !== 'all') {
-    const slotIds = slots.filter(s => s.date === dateFilter).map(s => s.id);
-    filtered = filtered.filter(r => slotIds.includes(r.slotId));
+    filtered = filtered.filter(r => r.date === dateFilter);
   }
 
   if (filtered.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="7" class="empty-state" style="padding:2rem;text-align:center;color:var(--color-text-muted)">Aucune inscription trouvée.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" class="empty-state" style="padding:2rem;text-align:center;color:var(--color-text-muted)">Aucune disponibilité trouvée.</td></tr>`;
     return;
   }
 
   tbody.innerHTML = filtered.map(reg => {
-    const slot    = slots.find(s => s.id === reg.slotId);
     const mission = DataService.getMissionById(reg.mission);
-    const slotLabel = slot
-      ? `${formatDate(slot.date)} ${formatTime(slot.startTime)}–${formatTime(slot.endTime)}`
-      : reg.slotId;
+    const timeRange = `${formatDate(reg.date)} ${reg.startTime}–${reg.endTime}`;
 
     return `
       <tr>
         <td>${escapeHtml(reg.firstName)} ${escapeHtml(reg.lastName)}</td>
         <td>${escapeHtml(reg.contact)}</td>
         <td><span class="badge-mission">${mission ? escapeHtml(mission.icon) + ' ' + escapeHtml(mission.label) : escapeHtml(reg.mission)}</span></td>
-        <td>${escapeHtml(slotLabel)}</td>
+        <td>${escapeHtml(timeRange)}</td>
         <td>${reg.comment ? escapeHtml(reg.comment) : '<span style="color:#aaa">—</span>'}</td>
         <td>${formatDatetime(reg.submittedAt)}</td>
         <td class="td-actions">
@@ -183,15 +176,15 @@ function renderRegistrationRows(registrations, slots, missionFilter, dateFilter)
 }
 
 /* ================================================================
-   Onglet créneaux
+   Onglet disponibilités
    ================================================================ */
-function renderSlotsTab(slots, registrations) {
+function renderAvailabilityTab(registrations) {
   const container = document.getElementById('slots-admin-container');
   if (!container) return;
 
-  const byDate = slots.reduce((acc, s) => {
-    if (!acc[s.date]) acc[s.date] = [];
-    acc[s.date].push(s);
+  const byDate = registrations.reduce((acc, r) => {
+    if (!acc[r.date]) acc[r.date] = [];
+    acc[r.date].push(r);
     return acc;
   }, {});
 
@@ -200,36 +193,31 @@ function renderSlotsTab(slots, registrations) {
     html += `<h3 class="date-heading" style="margin:1.5rem 0 0.75rem;color:var(--color-primary)">${escapeHtml(formatDate(date))}</h3>`;
     html += '<div class="slots-admin-grid">';
 
-    byDate[date].forEach(slot => {
-      const mission = DataService.getMissionById(slot.mission);
+    byDate[date].forEach(reg => {
+      const mission = DataService.getMissionById(reg.mission);
       const icon    = mission ? mission.icon : '📌';
-      const label   = mission ? mission.label : slot.mission;
-      const slotRegs = registrations.filter(r => r.slotId === slot.id);
-      const pct     = Math.min(100, Math.round((slotRegs.length / slot.maxVolunteers) * 100));
+      const label   = mission ? mission.label : reg.mission;
 
       html += `
         <div class="slot-admin-card">
           <div class="slot-admin-card-header">
             <span>${escapeHtml(icon)} ${escapeHtml(label)}</span>
-            <span class="slot-badge ${escapeHtml(slot.status)}">${slot.status === 'open' ? 'Dispo' : slot.status === 'full' ? 'Complet' : 'Fermé'}</span>
+            <span class="slot-badge open">Disponible</span>
           </div>
           <div class="slot-admin-card-body">
             <div class="slot-info-row" style="font-size:0.85rem;color:var(--color-text-muted);margin-bottom:0.5rem">
-              🕒 ${escapeHtml(formatTime(slot.startTime))} – ${escapeHtml(formatTime(slot.endTime))}
-              &nbsp;·&nbsp; ${slotRegs.length}/${slot.maxVolunteers} bénévoles
+              🕒 ${escapeHtml(reg.startTime)} – ${escapeHtml(reg.endTime)}
             </div>
-            <div class="progress-bar" style="margin-bottom:0.75rem">
-              <div class="progress-fill ${pct >= 100 ? 'full' : pct >= 70 ? 'nearly-full' : ''}" style="width:${pct}%"></div>
+            <div class="slot-volunteers">
+              <div class="volunteer-item">
+                👤 ${escapeHtml(reg.firstName)} ${escapeHtml(reg.lastName)}
+                <span style="color:var(--color-text-muted);font-size:0.78rem;margin-left:auto">${escapeHtml(reg.contact)}</span>
+              </div>
             </div>
-            ${slotRegs.length > 0 ? `
-              <div class="slot-volunteers">
-                <div class="slot-volunteers-title">Inscrits</div>
-                ${slotRegs.map(r => `
-                  <div class="volunteer-item">
-                    👤 ${escapeHtml(r.firstName)} ${escapeHtml(r.lastName)}
-                    <span style="color:var(--color-text-muted);font-size:0.78rem;margin-left:auto">${escapeHtml(r.contact)}</span>
-                  </div>`).join('')}
-              </div>` : `<div style="color:var(--color-text-muted);font-size:0.85rem">Aucun inscrit pour le moment.</div>`}
+            ${reg.comment ? `
+            <div class="slot-info-row" style="font-size:0.85rem;color:var(--color-text-muted);margin-top:0.5rem">
+              📝 ${escapeHtml(reg.comment)}
+            </div>` : ''}
           </div>
         </div>`;
     });
@@ -262,23 +250,22 @@ function setupTabs() {
 /* ================================================================
    Export CSV
    ================================================================ */
-function setupExport(registrations, slots) {
+function setupExport(registrations) {
   const exportBtn = document.getElementById('export-csv-btn');
   if (!exportBtn) return;
 
   exportBtn.addEventListener('click', () => {
     const rows = [
-      ['Prénom', 'Nom', 'Contact', 'Mission', 'Date', 'Horaire', 'Commentaire', 'Date inscription'],
+      ['Prénom', 'Nom', 'Contact', 'Mission', 'Date', 'Horaire', 'Commentaire', 'Date soumise'],
       ...registrations.map(reg => {
-        const slot    = slots.find(s => s.id === reg.slotId);
         const mission = DataService.getMissionById(reg.mission);
         return [
           reg.firstName,
           reg.lastName,
           reg.contact,
           mission ? mission.label : reg.mission,
-          slot ? formatDate(slot.date) : '',
-          slot ? `${formatTime(slot.startTime)}-${formatTime(slot.endTime)}` : '',
+          formatDate(reg.date),
+          `${reg.startTime}-${reg.endTime}`,
           reg.comment || '',
           formatDatetime(reg.submittedAt),
         ];
@@ -301,7 +288,7 @@ function setupExport(registrations, slots) {
    ================================================================ */
 let pendingDeleteId = null;
 
-function setupDeleteModal(registrations, slots) {
+function setupDeleteModal(registrations) {
   const modal      = document.getElementById('delete-modal');
   const confirmBtn = document.getElementById('delete-confirm-btn');
   const cancelBtn  = document.getElementById('delete-cancel-btn');
