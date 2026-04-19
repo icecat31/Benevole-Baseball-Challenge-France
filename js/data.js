@@ -2,9 +2,9 @@
  * data.js — Couche d'abstraction des données
  * Baseball Challenge France 2026 — Toulouse
  *
- * Actuellement : stockage en localStorage (mode démo / MVP).
- * Pour connecter Supabase, remplacer les fonctions marquées
- * [SUPABASE] par des appels à l'API Supabase correspondante.
+ * Stockage persistant via Supabase.
+ * La session locale reste côté navigateur, mais toutes les données métiers
+ * (comptes bénévoles et disponibilités) passent par la base distante.
  *
  * Structure :
  *  - SLOTS    : créneaux disponibles
@@ -18,9 +18,7 @@
    CONFIGURATION
    ================================================================ */
 const CONFIG = {
-  storageKey: 'bcf2026_registrations',
   adminPasswordKey: 'bcf2026_admin_pwd',
-  volunteerUsersKey: 'bcf2026_users',
   volunteerSessionKey: 'bcf2026_user_session',
   volunteerSessionUserKey: 'bcf2026_user_session_data',
   defaultAdminPassword: 'challenge2026',
@@ -45,59 +43,6 @@ const MISSIONS = [
   { id: 'accueil',      label: 'Accueil',                icon: '👋' },
   { id: 'autres',       label: 'Autres missions',        icon: '🔧' },
 ];
-
-/* ================================================================
-   STORAGE HELPERS (localStorage)
-   [SUPABASE] Ces fonctions seront remplacées par des appels Supabase
-   ================================================================ */
-
-/**
- * Charge les inscriptions depuis localStorage.
- * @returns {Array}
- */
-function loadRegistrationsFromStorage() {
-  const raw = localStorage.getItem(CONFIG.storageKey);
-  if (raw) {
-    try {
-      return JSON.parse(raw);
-    } catch (e) {
-      console.error('Erreur lecture inscriptions:', e);
-    }
-  }
-  return [];
-}
-
-/**
- * Sauvegarde les inscriptions dans localStorage.
- * @param {Array} registrations
- */
-function saveRegistrationsToStorage(registrations) {
-  localStorage.setItem(CONFIG.storageKey, JSON.stringify(registrations));
-}
-
-/**
- * Charge les comptes benevoles depuis localStorage.
- * @returns {Array}
- */
-function loadVolunteerUsersFromStorage() {
-  const raw = localStorage.getItem(CONFIG.volunteerUsersKey);
-  if (raw) {
-    try {
-      return JSON.parse(raw);
-    } catch (e) {
-      console.error('Erreur lecture utilisateurs:', e);
-    }
-  }
-  return [];
-}
-
-/**
- * Sauvegarde les comptes benevoles.
- * @param {Array} users
- */
-function saveVolunteerUsersToStorage(users) {
-  localStorage.setItem(CONFIG.volunteerUsersKey, JSON.stringify(users));
-}
 
 /**
  * Lit la session benevole courante.
@@ -249,11 +194,12 @@ async getRegistrations() {
       });
       return Array.isArray(rows) ? rows.map(mapRegistrationRow) : [];
     } catch (err) {
-      console.error('Erreur Supabase getRegistrations, fallback localStorage:', err);
+      console.error('Erreur Supabase getRegistrations:', err);
+      return [];
     }
   }
 
-  return loadRegistrationsFromStorage();
+  return [];
 },
 
 /**
@@ -296,80 +242,55 @@ async markAvailability(input) {
     return { success: false, error: 'L\'heure de fin doit être après l\'heure de début.' };
   }
 
-  if (isSupabaseEnabled()) {
-    try {
-      const duplicateCheckQuery = [
-        'select=id',
-        `user_id=eq.${encodeURIComponent(user.id)}`,
-        `date=eq.${encodeURIComponent(date)}`,
-        `mission=eq.${encodeURIComponent(mission)}`,
-        `start_time=eq.${encodeURIComponent(startTime)}`,
-        `end_time=eq.${encodeURIComponent(endTime)}`,
-        'limit=1',
-      ].join('&');
+  if (!isSupabaseEnabled()) {
+    return { success: false, error: 'Connexion Supabase non configurée.' };
+  }
 
-      const existing = await supabaseRequest({
-        table: 'registrations',
-        query: duplicateCheckQuery,
-        prefer: '',
-      });
-      if (Array.isArray(existing) && existing.length > 0) {
-        return { success: false, error: 'Vous êtes déjà marqué disponible pour ce créneau.' };
-      }
+  try {
+    const duplicateCheckQuery = [
+      'select=id',
+      `user_id=eq.${encodeURIComponent(user.id)}`,
+      `date=eq.${encodeURIComponent(date)}`,
+      `mission=eq.${encodeURIComponent(mission)}`,
+      `start_time=eq.${encodeURIComponent(startTime)}`,
+      `end_time=eq.${encodeURIComponent(endTime)}`,
+      'limit=1',
+    ].join('&');
 
-      const rows = await supabaseRequest({
-        method: 'POST',
-        table: 'registrations',
-        body: {
-          user_id: user.id,
-          first_name: user.firstName,
-          last_name: user.lastName,
-          contact: user.contact,
-          date,
-          mission,
-          start_time: startTime,
-          end_time: endTime,
-          comment: String(input.comment || '').trim(),
-        },
-      });
-
-      const created = Array.isArray(rows) && rows.length ? rows[0] : null;
-      return { success: true, id: created ? created.id : undefined };
-    } catch (err) {
-      console.error('Erreur Supabase markAvailability, fallback localStorage:', err);
-      if (err && err.message && /duplicate|unique|already/i.test(err.message)) {
-        return { success: false, error: 'Vous êtes déjà marqué disponible pour ce créneau.' };
-      }
+    const existing = await supabaseRequest({
+      table: 'registrations',
+      query: duplicateCheckQuery,
+      prefer: '',
+    });
+    if (Array.isArray(existing) && existing.length > 0) {
+      return { success: false, error: 'Vous êtes déjà marqué disponible pour ce créneau.' };
     }
+
+    const rows = await supabaseRequest({
+      method: 'POST',
+      table: 'registrations',
+      body: {
+        user_id: user.id,
+        first_name: user.firstName,
+        last_name: user.lastName,
+        contact: user.contact,
+        date,
+        mission,
+        start_time: startTime,
+        end_time: endTime,
+        comment: String(input.comment || '').trim(),
+      },
+    });
+
+    const created = Array.isArray(rows) && rows.length ? rows[0] : null;
+    return { success: true, id: created ? created.id : undefined };
+  } catch (err) {
+    console.error('Erreur Supabase markAvailability:', err);
+    if (err && err.message && /duplicate|unique|already/i.test(err.message)) {
+      return { success: false, error: 'Vous êtes déjà marqué disponible pour ce créneau.' };
+    }
+    return { success: false, error: 'Impossible d’enregistrer la disponibilité.' };
   }
-
-  // Fallback localStorage
-  const registrations = loadRegistrationsFromStorage();
-  const alreadyExists = registrations.some(
-    r => r.userId === user.id && r.date === date && r.mission === mission &&
-         r.startTime === startTime && r.endTime === endTime
-  );
-  if (alreadyExists) {
-    return { success: false, error: 'Vous êtes déjà marqué disponible pour ce créneau.' };
-  }
-
-  const id = 'reg-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
-  registrations.push({
-    id,
-    userId: user.id,
-    firstName: user.firstName,
-    lastName: user.lastName,
-    date,
-    mission,
-    startTime,
-    endTime,
-    contact: user.contact,
-    comment: String(input.comment || '').trim(),
-    submittedAt: new Date().toISOString(),
-  });
-
-  saveRegistrationsToStorage(registrations);
-  return { success: true, id };
 },
 
 /**
@@ -385,43 +306,31 @@ async unmarkAvailability(registrationId) {
     return { success: false, error: 'Connexion requise.' };
   }
 
-  if (isSupabaseEnabled()) {
-    try {
-      const query = [
-        `id=eq.${encodeURIComponent(registrationId)}`,
-        `user_id=eq.${encodeURIComponent(user.id)}`,
-        'select=id',
-      ].join('&');
+  if (!isSupabaseEnabled()) {
+    return { success: false, error: 'Connexion Supabase non configurée.' };
+  }
 
-      const deleted = await supabaseRequest({
-        method: 'DELETE',
-        table: 'registrations',
-        query,
-      });
+  try {
+    const query = [
+      `id=eq.${encodeURIComponent(registrationId)}`,
+      `user_id=eq.${encodeURIComponent(user.id)}`,
+      'select=id',
+    ].join('&');
 
-      if (!Array.isArray(deleted) || deleted.length === 0) {
-        return { success: false, error: 'Enregistrement introuvable.' };
-      }
-      return { success: true };
-    } catch (err) {
-      console.error('Erreur Supabase unmarkAvailability, fallback localStorage:', err);
+    const deleted = await supabaseRequest({
+      method: 'DELETE',
+      table: 'registrations',
+      query,
+    });
+
+    if (!Array.isArray(deleted) || deleted.length === 0) {
+      return { success: false, error: 'Enregistrement introuvable.' };
     }
+    return { success: true };
+  } catch (err) {
+    console.error('Erreur Supabase unmarkAvailability:', err);
+    return { success: false, error: 'Impossible de supprimer cette disponibilité.' };
   }
-
-  const registrations = loadRegistrationsFromStorage();
-  const idx = registrations.findIndex(r => r.id === registrationId);
-  if (idx === -1) {
-    return { success: false, error: 'Enregistrement introuvable.' };
-  }
-
-  const reg = registrations[idx];
-  if (reg.userId !== user.id) {
-    return { success: false, error: 'Vous pouvez seulement supprimer vos propres entrées.' };
-  }
-
-  registrations.splice(idx, 1);
-  saveRegistrationsToStorage(registrations);
-  return { success: true };
 },
 
   /* ---- Missions ---- */
@@ -455,104 +364,77 @@ async unmarkAvailability(registrationId) {
       return { success: false, error: 'Informations de compte invalides.' };
     }
 
-    if (isSupabaseEnabled()) {
-      try {
-        const existing = await supabaseRequest({
-          table: 'volunteer_users',
-          query: `select=id&contact=eq.${encodeURIComponent(contact)}&limit=1`,
-          prefer: '',
-        });
-        if (Array.isArray(existing) && existing.length > 0) {
-          return { success: false, error: 'Un compte existe deja avec ce contact.' };
-        }
+    if (!isSupabaseEnabled()) {
+      return { success: false, error: 'Connexion Supabase non configurée.' };
+    }
 
-        const rows = await supabaseRequest({
-          method: 'POST',
-          table: 'volunteer_users',
-          body: {
-            first_name: firstName,
-            last_name: lastName,
-            contact,
-            password,
-          },
-        });
-
-        const created = Array.isArray(rows) && rows.length ? mapUserRow(rows[0]) : null;
-        if (!created) {
-          return { success: false, error: 'Impossible de creer le compte.' };
-        }
-
-        saveVolunteerSessionToStorage(created.id);
-        saveVolunteerSessionUserToStorage(created);
-        return { success: true, id: created.id };
-      } catch (err) {
-        console.error('Erreur Supabase registerVolunteerUser, fallback localStorage:', err);
+    try {
+      const existing = await supabaseRequest({
+        table: 'volunteer_users',
+        query: `select=id&contact=eq.${encodeURIComponent(contact)}&limit=1`,
+        prefer: '',
+      });
+      if (Array.isArray(existing) && existing.length > 0) {
+        return { success: false, error: 'Un compte existe deja avec ce contact.' };
       }
+
+      const rows = await supabaseRequest({
+        method: 'POST',
+        table: 'volunteer_users',
+        body: {
+          first_name: firstName,
+          last_name: lastName,
+          contact,
+          password,
+        },
+      });
+
+      const created = Array.isArray(rows) && rows.length ? mapUserRow(rows[0]) : null;
+      if (!created) {
+        return { success: false, error: 'Impossible de creer le compte.' };
+      }
+
+      saveVolunteerSessionToStorage(created.id);
+      saveVolunteerSessionUserToStorage(created);
+      return { success: true, id: created.id };
+    } catch (err) {
+      console.error('Erreur Supabase registerVolunteerUser:', err);
+      return { success: false, error: 'Impossible de creer le compte.' };
     }
-
-    const users = loadVolunteerUsersFromStorage();
-    const alreadyExists = users.some(u => u.contact.toLowerCase() === contact);
-    if (alreadyExists) {
-      return { success: false, error: 'Un compte existe deja avec ce contact.' };
-    }
-
-    const id = 'usr-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
-    const created = {
-      id,
-      firstName,
-      lastName,
-      contact,
-      password,
-      createdAt: new Date().toISOString(),
-    };
-    users.push(created);
-    saveVolunteerUsersToStorage(users);
-    saveVolunteerSessionToStorage(id);
-    saveVolunteerSessionUserToStorage(created);
-
-    return { success: true, id };
   },
 
   async loginVolunteerUser(contact, password) {
     const normalizedContact = String(contact || '').trim().toLowerCase();
     const normalizedPassword = String(password || '');
 
-    if (isSupabaseEnabled()) {
-      try {
-        const rows = await supabaseRequest({
-          table: 'volunteer_users',
-          query: [
-            'select=*',
-            `contact=eq.${encodeURIComponent(normalizedContact)}`,
-            `password=eq.${encodeURIComponent(normalizedPassword)}`,
-            'limit=1',
-          ].join('&'),
-          prefer: '',
-        });
-
-        const user = Array.isArray(rows) && rows.length ? mapUserRow(rows[0]) : null;
-        if (!user) {
-          return { success: false, error: 'Contact ou mot de passe incorrect.' };
-        }
-
-        saveVolunteerSessionToStorage(user.id);
-        saveVolunteerSessionUserToStorage(user);
-        return { success: true, user };
-      } catch (err) {
-        console.error('Erreur Supabase loginVolunteerUser, fallback localStorage:', err);
-      }
+    if (!isSupabaseEnabled()) {
+      return { success: false, error: 'Connexion Supabase non configurée.' };
     }
 
-    const users = loadVolunteerUsersFromStorage();
-    const user = users.find(u => u.contact.toLowerCase() === normalizedContact && u.password === normalizedPassword);
+    try {
+      const rows = await supabaseRequest({
+        table: 'volunteer_users',
+        query: [
+          'select=*',
+          `contact=eq.${encodeURIComponent(normalizedContact)}`,
+          `password=eq.${encodeURIComponent(normalizedPassword)}`,
+          'limit=1',
+        ].join('&'),
+        prefer: '',
+      });
 
-    if (!user) {
+      const user = Array.isArray(rows) && rows.length ? mapUserRow(rows[0]) : null;
+      if (!user) {
+        return { success: false, error: 'Contact ou mot de passe incorrect.' };
+      }
+
+      saveVolunteerSessionToStorage(user.id);
+      saveVolunteerSessionUserToStorage(user);
+      return { success: true, user };
+    } catch (err) {
+      console.error('Erreur Supabase loginVolunteerUser:', err);
       return { success: false, error: 'Contact ou mot de passe incorrect.' };
     }
-
-    saveVolunteerSessionToStorage(user.id);
-    saveVolunteerSessionUserToStorage(user);
-    return { success: true, user };
   },
 
   logoutVolunteerUser() {
@@ -566,15 +448,7 @@ async unmarkAvailability(registrationId) {
       return sessionUser;
     }
 
-    const userId = loadVolunteerSessionFromStorage();
-    if (!userId) return null;
-
-    const users = loadVolunteerUsersFromStorage();
-    const user = users.find(u => u.id === userId) || null;
-    if (user) {
-      saveVolunteerSessionUserToStorage(user);
-    }
-    return user;
+    return null;
   },
 
   isVolunteerLoggedIn() {
@@ -604,32 +478,26 @@ async unmarkAvailability(registrationId) {
       return { success: false, error: 'ID manquant.' };
     }
 
-    if (isSupabaseEnabled()) {
-      try {
-        const deleted = await supabaseRequest({
-          method: 'DELETE',
-          table: 'registrations',
-          query: `id=eq.${encodeURIComponent(registrationId)}&select=id`,
-        });
+    if (!isSupabaseEnabled()) {
+      return { success: false, error: 'Connexion Supabase non configurée.' };
+    }
 
-        if (!Array.isArray(deleted) || deleted.length === 0) {
-          return { success: false, error: 'Enregistrement introuvable.' };
-        }
+    try {
+      const deleted = await supabaseRequest({
+        method: 'DELETE',
+        table: 'registrations',
+        query: `id=eq.${encodeURIComponent(registrationId)}&select=id`,
+      });
 
-        return { success: true };
-      } catch (err) {
-        console.error('Erreur Supabase deleteRegistration, fallback localStorage:', err);
+      if (!Array.isArray(deleted) || deleted.length === 0) {
+        return { success: false, error: 'Enregistrement introuvable.' };
       }
-    }
 
-    const registrations = loadRegistrationsFromStorage();
-    const next = registrations.filter(r => r.id !== registrationId);
-    if (next.length === registrations.length) {
-      return { success: false, error: 'Enregistrement introuvable.' };
+      return { success: true };
+    } catch (err) {
+      console.error('Erreur Supabase deleteRegistration:', err);
+      return { success: false, error: 'Impossible de supprimer cet enregistrement.' };
     }
-
-    saveRegistrationsToStorage(next);
-    return { success: true };
   },
 
   /* ---- Auth admin (simple, côté client uniquement) ---- */
