@@ -1,163 +1,67 @@
 # ⚾ Bénévoles — Challenge de France Baseball 2026
 
-Site de gestion des bénévoles pour le **Challenge de France de Baseball 2026** organisé à Toulouse (19–21 juin 2026).
+Application web statique de gestion des bénévoles pour le **Challenge de France de Baseball 2026** à Toulouse.
 
----
+## Objectif
 
-## 🚀 Démarrage rapide
+Permettre à des bénévoles de créer un compte, se connecter, enregistrer leurs disponibilités par créneau, et permettre à un administrateur de consulter, filtrer et supprimer les inscriptions.
 
-### Option 1 — En local (sans serveur)
+## Fonctionnalités essentielles
 
-Ouvrez simplement `index.html` dans votre navigateur. Aucune installation requise.
+### Côté public
+- Page d’accueil avec présentation de l’événement et aperçu des disponibilités.
+- Filtrage des créneaux par mission et par date.
+- Vue calendrier des disponibilités par jour et par horaire.
+- Formulaire de création de compte bénévole.
+- Connexion bénévole par email/téléphone et mot de passe.
+- Ajout d’une disponibilité avec mission, date, heure de début, heure de fin et note optionnelle.
+- Préremplissage possible du formulaire depuis l’URL avec date et mission.
+- Confirmation visuelle après ajout ou suppression d’une disponibilité.
+- Liste des créneaux existants avec possibilité de rejoindre un créneau.
 
-```bash
-# Ou avec un serveur local (recommandé) :
-npx serve .
-# puis ouvrez http://localhost:3000
-```
+### Côté administration
+- Page admin protégée par mot de passe.
+- Tableau des inscriptions avec filtres par mission et par date.
+- Vue compacte des disponibilités groupées par jour.
+- Statistiques en temps réel sur les inscriptions.
+- Export CSV des inscriptions.
+- Suppression d’une inscription avec confirmation.
 
-### Option 2 — Déploiement sur Netlify
+## Règles métier
 
-1. Forkez ce repo ou connectez-le à Netlify
-2. Netlify détecte automatiquement le fichier `netlify.toml`
-3. Le site est publié sans configuration supplémentaire
+- Une inscription contient au minimum: prénom, nom, contact, mission, date, heure de début, heure de fin.
+- Les missions disponibles sont: Buvette, Préparation sandwichs, Préparation terrain, Activités / Animation, Accueil, Autres missions.
+- Les dates autorisées sont du 06/05/2026 au 09/05/2026.
+- L’heure de fin doit être strictement après l’heure de début.
+- Un bénévole ne peut pas enregistrer deux fois exactement le même créneau.
+- Les disponibilités doivent être visibles par tous les utilisateurs.
 
-[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/icecat31/Benevole-Baseball-Challenge-France)
+## Pages du site
 
----
+- `index.html` : page d’accueil et consultation des créneaux.
+- `benevole.html` : inscription, connexion et ajout de disponibilité.
+- `admin.html` : administration des inscriptions.
 
-## 📁 Structure du projet
+## Structure technique
 
-```
-/
-├── index.html          # Page d'accueil — créneaux et filtres
-├── benevole.html       # Formulaire d'inscription bénévole
-├── admin.html          # Interface d'administration (protégée par mot de passe)
-├── css/
-│   ├── main.css        # Styles globaux (mobile-first, responsive)
-│   └── admin.css       # Styles spécifiques à l'administration
-├── js/
-│   ├── data.js         # Couche d'abstraction données (localStorage → Supabase-ready)
-│   ├── slots.js        # Affichage et filtrage des créneaux
-│   ├── form.js         # Validation et soumission du formulaire
-│   └── admin.js        # Logique du tableau de bord admin
-├── netlify.toml        # Configuration Netlify (en-têtes sécurité, cache)
-└── README.md
-```
+- Frontend en HTML, CSS et JavaScript vanilla.
+- Données partagées via Supabase.
+- Site pensé mobile-first et responsive.
+- Déploiement possible sur Netlify.
 
----
+## Données manipulées
 
-## ✨ Fonctionnalités
+- `volunteer_users` : comptes bénévoles.
+- `registrations` : disponibilités / inscriptions.
+- Les données doivent être partagées entre plusieurs personnes en temps réel via la base distante.
 
-### Site public
-- 🏠 **Page d'accueil** — présentation de l'événement, filtres par mission et date
-- 📅 **Créneaux disponibles** — affichage en grille avec barre de progression
-- 📝 **Formulaire d'inscription** — validation complète, présélection du créneau depuis l'URL
-- ✅ **Confirmation** — écran de succès après inscription
+## Prompt prêt à réutiliser
 
-### Administration (`/admin.html`)
-- 🔐 Accès protégé par mot de passe (MVP)
-- 📊 Statistiques en temps réel (inscrits, créneaux disponibles/complets)
-- 📋 Tableau des inscriptions avec filtres mission/date
-- 📅 Vue par créneau avec la liste des bénévoles
-- 📥 Export CSV des inscriptions
-- 🗑 Suppression d'inscription avec confirmation
+Tu peux utiliser ce résumé comme base pour recréer le site:
 
----
+> Crée une application web responsive de gestion de bénévoles pour un événement sportif. Le site doit avoir une page d’accueil publique avec vue des créneaux, filtres par mission et date, et affichage des disponibilités partagées. Une page d’inscription doit permettre de créer un compte bénévole, se connecter, puis ajouter des disponibilités avec mission, date, heure de début, heure de fin et commentaire optionnel. Les disponibilités doivent être stockées dans une base de données partagée afin que plusieurs personnes voient les mêmes données. Une page admin protégée doit afficher les inscriptions, permettre le filtrage, l’export CSV et la suppression d’entrées. Les missions sont: Buvette, Préparation sandwichs, Préparation terrain, Activités / Animation, Accueil, Autres missions. Les dates autorisées vont du 06/05/2026 au 09/05/2026.
 
-## 🎯 Missions disponibles
+## Remarque
 
-| Mission | Description |
-|---------|-------------|
-| 🍺 Buvette | Tenue et service de la buvette |
-| 🥪 Sandwichs | Préparation et service des repas |
-| ⚾ Terrain | Montage, marquage et rangement |
-| 🎉 Animation | Stands enfants, initiation baseball |
-| 👋 Accueil | Accueil du public et des équipes |
-| 🔧 Autres | Logistique générale, aide polyvalente |
-
----
-
-## 🔑 Accès admin
-
-**Mot de passe par défaut :** `challenge2026`
-
-> ⚠️ Ce mot de passe est stocké en clair dans `js/data.js` (ligne `defaultAdminPassword`).
-> C'est volontaire pour le MVP — changez-le avant mise en production.
-> Pour une vraie sécurité, connectez Supabase Auth (voir ci-dessous).
-
----
-
-## 🗄️ Données
-
-### Stockage actuel (MVP)
-
-Les données (créneaux et inscriptions) sont stockées dans le **localStorage** du navigateur.
-- Parfait pour tester et présenter le site
-- Les données ne sont pas partagées entre navigateurs/appareils
-
-### Migrer vers Supabase
-
-Dans `js/data.js`, chaque méthode de `DataService` est documentée avec un commentaire `[SUPABASE]`
-montrant la requête équivalente. Pour migrer :
-
-1. Créez un projet sur [supabase.com](https://supabase.com)
-2. Créez les tables `slots` et `registrations` (voir schéma ci-dessous)
-3. Remplacez les fonctions `loadXxxFromStorage` / `saveXxxToStorage` par les appels Supabase
-4. Renseignez `CONFIG.supabase.url` et `CONFIG.supabase.anonKey` dans `data.js`
-
-#### Schéma SQL suggéré
-
-```sql
--- Créneaux
-create table slots (
-  id            text primary key,
-  date          date not null,
-  start_time    time not null,
-  end_time      time not null,
-  mission       text not null,
-  max_volunteers int not null default 4,
-  status        text not null default 'open' check (status in ('open','full','closed')),
-  description   text
-);
-
--- Inscriptions
-create table registrations (
-  id           text primary key,
-  first_name   text not null,
-  last_name    text not null,
-  contact      text not null,
-  mission      text not null,
-  slot_id      text references slots(id),
-  comment      text,
-  submitted_at timestamptz default now()
-);
-```
-
----
-
-## 🛠️ Stack technique
-
-| Composant | Technologie |
-|-----------|-------------|
-| Frontend | HTML5, CSS3, JavaScript vanilla (ES6+) |
-| Stockage (MVP) | localStorage |
-| Stockage (prod) | Supabase (PostgreSQL) |
-| Hébergement | Netlify |
-| Build | Aucun — fichiers statiques |
-
----
-
-## 📱 Compatibilité
-
-- ✅ Mobile-first, responsive (320px → desktop)
-- ✅ Chrome, Firefox, Safari, Edge (versions récentes)
-- ✅ Accessible (ARIA, labels, contraste)
-
----
-
-## 🤝 Contribution
-
-Ce projet est destiné au club de baseball de Toulouse pour l'organisation du Challenge de France 2026.
-Pour toute modification, ouvrez une issue ou une pull request.
+Le projet est actuellement branché sur Supabase pour les données partagées. Le frontend ne doit pas dépendre du stockage local pour les inscriptions ou les comptes.
 
