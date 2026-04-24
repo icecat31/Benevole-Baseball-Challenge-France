@@ -12,7 +12,7 @@ const statVolunteers = document.getElementById('stat-volunteers');
 let allSlots = [];
 let allRegistrations = [];
 
-const SLOT_DATES = ['2026-05-07', '2026-05-08', '2026-05-09', '2026-05-10'];
+const SLOT_DATES = ['2026-05-14', '2026-05-15', '2026-05-16', '2026-05-17'];
 
 document.addEventListener('DOMContentLoaded', async () => {
   setupFilters();

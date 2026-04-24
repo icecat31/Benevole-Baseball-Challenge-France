@@ -1,6 +1,6 @@
 'use strict';
 
-const SLOT_DATES = ['2026-05-07', '2026-05-08', '2026-05-09', '2026-05-10'];
+const SLOT_DATES = ['2026-05-14', '2026-05-15', '2026-05-16', '2026-05-17'];
 
 // === DOM Elements ===
 const authPanel = document.getElementById('auth-panel');
