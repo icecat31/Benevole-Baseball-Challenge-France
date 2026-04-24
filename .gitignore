@@ -13,3 +13,6 @@ Thumbs.db
 
 # Other
 PROMPT.md
+supabase_slots_seed.sql
+planning.md
+supabase_planning_seed.sql

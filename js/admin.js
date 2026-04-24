@@ -72,11 +72,14 @@ function showDashboard() {
    ================================================================ */
 async function loadDashboard() {
   try {
-    const registrations = await DataService.getRegistrations();
+    const [slots, registrations] = await Promise.all([
+      DataService.getSlots(),
+      DataService.getRegistrations(),
+    ]);
 
-    renderAdminStats(registrations);
+    renderAdminStats(slots, registrations);
     renderRegistrationsTab(registrations);
-    renderAvailabilityTab(registrations);
+    renderAvailabilityTab(slots, registrations);
     setupTabs();
     setupExport(registrations);
     setupDeleteModal(registrations);
@@ -88,16 +91,20 @@ async function loadDashboard() {
 /* ================================================================
    Stats admin
    ================================================================ */
-function renderAdminStats(registrations) {
-  const totalReg    = registrations.length;
-  const uniqueUsers = new Set(registrations.map(r => r.userId)).size;
+function renderAdminStats(slots, registrations) {
+  const totalReg = registrations.length;
+  const totalSlots = slots.length;
+  const openSlots = slots.filter(slot => !slot.isFull).length;
+  const fullSlots = slots.filter(slot => slot.isFull).length;
+  const totalPlaces = slots.reduce((sum, slot) => sum + Number(slot.maxVolunteers || 0), 0);
 
   setText('admin-stat-reg',    totalReg);
-  setText('admin-stat-open',   totalReg);
-  setText('admin-stat-full',   uniqueUsers);
-  // Update label if needed
+  setText('admin-stat-open',   openSlots);
+  setText('admin-stat-full',   fullSlots);
+  setText('admin-stat-places', totalPlaces);
+
   const label = document.getElementById('admin-stat-places-label');
-  if (label) label.textContent = 'Utilisateurs uniques';
+  if (label) label.textContent = 'Places total';
 }
 
 /* ================================================================
@@ -178,46 +185,58 @@ function renderRegistrationRows(registrations, missionFilter, dateFilter) {
 /* ================================================================
    Onglet disponibilités
    ================================================================ */
-function renderAvailabilityTab(registrations) {
+function renderAvailabilityTab(slots, registrations) {
   const container = document.getElementById('slots-admin-container');
   if (!container) return;
 
-  const byDate = registrations.reduce((acc, r) => {
-    if (!acc[r.date]) acc[r.date] = [];
-    acc[r.date].push(r);
+  const registrationsBySlot = registrations.reduce((acc, reg) => {
+    if (!reg.slotId) return acc;
+    if (!acc[reg.slotId]) acc[reg.slotId] = [];
+    acc[reg.slotId].push(reg);
     return acc;
   }, {});
 
+  if (!slots || slots.length === 0) {
+    container.innerHTML = '<p style="color:var(--color-text-muted)">Aucun créneau disponible.</p>';
+    return;
+  }
+
   let html = '';
-  Object.keys(byDate).sort().forEach(date => {
+  const grouped = slots.reduce((acc, slot) => {
+    if (!acc[slot.date]) acc[slot.date] = [];
+    acc[slot.date].push(slot);
+    return acc;
+  }, {});
+
+  Object.keys(grouped).sort().forEach(date => {
     html += `<h3 class="date-heading" style="margin:1.5rem 0 0.75rem;color:var(--color-primary)">${escapeHtml(formatDate(date))}</h3>`;
     html += '<div class="slots-admin-grid">';
 
-    byDate[date].forEach(reg => {
-      const mission = DataService.getMissionById(reg.mission);
-      const icon    = mission ? mission.icon : '📌';
-      const label   = mission ? mission.label : reg.mission;
+    grouped[date].forEach(slot => {
+      const mission = DataService.getMissionById(slot.mission);
+      const volunteers = registrationsBySlot[slot.id] || [];
 
       html += `
         <div class="slot-admin-card">
           <div class="slot-admin-card-header">
-            <span>${escapeHtml(icon)} ${escapeHtml(label)}</span>
-            <span class="slot-badge open">Disponible</span>
+            <span>${escapeHtml(mission ? `${mission.icon} ${mission.label}` : slot.mission)}</span>
+            <span class="slot-badge ${slot.isFull ? 'full' : 'open'}">${slot.isFull ? 'Complet' : 'Ouvert'}</span>
           </div>
           <div class="slot-admin-card-body">
             <div class="slot-info-row" style="font-size:0.85rem;color:var(--color-text-muted);margin-bottom:0.5rem">
-              🕒 ${escapeHtml(reg.startTime)} – ${escapeHtml(reg.endTime)}
+              🕒 ${escapeHtml(formatTime(slot.startTime))} – ${escapeHtml(formatTime(slot.endTime))}
+            </div>
+            <div class="slot-info-row" style="font-size:0.85rem;color:var(--color-text-muted);margin-bottom:0.5rem">
+              👥 ${escapeHtml(String(slot.registeredCount || 0))} / ${escapeHtml(String(slot.maxVolunteers || 0))} inscrits
             </div>
             <div class="slot-volunteers">
-              <div class="volunteer-item">
-                👤 ${escapeHtml(reg.firstName)} ${escapeHtml(reg.lastName)}
-                <span style="color:var(--color-text-muted);font-size:0.78rem;margin-left:auto">${escapeHtml(reg.contact)}</span>
-              </div>
+              ${volunteers.length > 0 ? volunteers.map(reg => `
+                <div class="volunteer-item">
+                  👤 ${escapeHtml(reg.firstName)} ${escapeHtml(reg.lastName)}
+                  <span style="color:var(--color-text-muted);font-size:0.78rem;margin-left:auto">${escapeHtml(reg.contact)}</span>
+                </div>
+              `).join('') : '<div class="volunteer-item" style="color:var(--color-text-muted)">Aucun bénévole inscrit</div>'}
             </div>
-            ${reg.comment ? `
-            <div class="slot-info-row" style="font-size:0.85rem;color:var(--color-text-muted);margin-top:0.5rem">
-              📝 ${escapeHtml(reg.comment)}
-            </div>` : ''}
           </div>
         </div>`;
     });

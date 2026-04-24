@@ -1,17 +1,6 @@
-/**
- * form.js — Calendrier de disponibilités partagé
- * Utilisateurs marquent leur disponibilité simple: jour + mission + heure
- * Tous peuvent voir qui est disponible sur chaque créneau
- */
-
 'use strict';
 
-const CALENDAR_DATES = ['2026-05-06', '2026-05-07', '2026-05-08', '2026-05-09'];
-const CALENDAR_START_HOUR = 7;
-const CALENDAR_END_HOUR = 22;
-const CALENDAR_START_MINUTE = CALENDAR_START_HOUR * 60;
-const CALENDAR_END_MINUTE = CALENDAR_END_HOUR * 60;
-const TIMELINE_PIXELS_PER_MINUTE = 0.8;
+const SLOT_DATES = ['2026-05-07', '2026-05-08', '2026-05-09', '2026-05-10'];
 
 // === DOM Elements ===
 const authPanel = document.getElementById('auth-panel');
@@ -26,23 +15,18 @@ const logoutUserBtn = document.getElementById('logout-user-btn');
 
 const plannerCard = document.getElementById('planner-card');
 const plannerAlert = document.getElementById('planner-alert');
-const plannerMission = document.getElementById('planner-mission');
-const plannerDate = document.getElementById('planner-date');
-const plannerStart = document.getElementById('planner-start');
-const plannerEnd = document.getElementById('planner-end');
-const plannerDescription = document.getElementById('planner-description');
-const markAvailableBtn = document.getElementById('create-slot-btn');
-const cancelEditBtn = document.getElementById('cancel-edit-btn');
+const slotFilterMission = document.getElementById('slot-filter-mission');
+const slotFilterDate = document.getElementById('slot-filter-date');
+const slotComment = document.getElementById('slot-comment');
+const slotsGrid = document.getElementById('slots-grid');
+const mySlotsList = document.getElementById('my-slots-list');
 
-const plannerCalendarGrid = document.getElementById('planner-calendar-grid');
-const joinSlotsList = document.getElementById('join-slots-list');
-
-// === State ===
+let allSlots = [];
 let allRegistrations = [];
-
+let pendingSlotId = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
-  populateMissionSelect();
+  populateFilters();
   setupAuthTabs();
   setupEvents();
   prefillFromUrl();
@@ -53,20 +37,16 @@ function setupEvents() {
   if (loginForm) loginForm.addEventListener('submit', handleLogin);
   if (registerForm) registerForm.addEventListener('submit', handleRegister);
   if (logoutUserBtn) logoutUserBtn.addEventListener('click', handleLogout);
-  if (markAvailableBtn) markAvailableBtn.addEventListener('click', handleMarkAvailable);
-  if (cancelEditBtn) cancelEditBtn.addEventListener('click', resetForm);
-  if (plannerDate) {
-    plannerDate.addEventListener('blur', () => {
-      const parsed = parsePlannerDateInput(plannerDate.value);
-      if (parsed) plannerDate.value = isoToFrenchDate(parsed);
-    });
+
+  if (slotFilterMission) slotFilterMission.addEventListener('change', renderSlotBoard);
+  if (slotFilterDate) slotFilterDate.addEventListener('change', renderSlotBoard);
+
+  if (slotsGrid) {
+    slotsGrid.addEventListener('click', handleSlotAction);
   }
 
-  if (plannerCalendarGrid) {
-    plannerCalendarGrid.addEventListener('click', handleCalendarClick);
-  }
-  if (joinSlotsList) {
-    joinSlotsList.addEventListener('click', handleCalendarClick);
+  if (mySlotsList) {
+    mySlotsList.addEventListener('click', handleMySlotAction);
   }
 }
 
@@ -89,37 +69,42 @@ function setupAuthTabs() {
   });
 }
 
+function populateFilters() {
+  if (slotFilterMission) {
+    const missions = DataService.getMissions();
+    slotFilterMission.innerHTML = '<option value="all">Toutes les missions</option>';
+    missions.forEach(mission => {
+      const option = document.createElement('option');
+      option.value = mission.id;
+      option.textContent = `${mission.icon} ${mission.label}`;
+      slotFilterMission.appendChild(option);
+    });
+  }
+
+  if (slotFilterDate) {
+    slotFilterDate.innerHTML = '<option value="all">Toutes les dates</option>';
+    SLOT_DATES.forEach(date => {
+      const option = document.createElement('option');
+      option.value = date;
+      option.textContent = formatDate(date);
+      slotFilterDate.appendChild(option);
+    });
+  }
+}
+
 function prefillFromUrl() {
   const params = new URLSearchParams(window.location.search);
+  pendingSlotId = params.get('slot') || params.get('slotId') || '';
+
   const date = params.get('date');
   const mission = params.get('mission');
-  if (date && plannerDate) {
-    const parsedDate = parsePlannerDateInput(date);
-    if (parsedDate) {
-      plannerDate.value = isoToFrenchDate(parsedDate);
-    }
+  if (slotFilterDate && date && SLOT_DATES.includes(date)) {
+    slotFilterDate.value = date;
   }
-  if (mission && plannerMission) plannerMission.value = mission;
+  if (slotFilterMission && mission) {
+    slotFilterMission.value = mission;
+  }
 }
-
-function populateMissionSelect() {
-  if (!plannerMission) return;
-
-  plannerMission.innerHTML = '';
-  const missions = DataService.getMissions();
-  missions.forEach(mission => {
-    const option = document.createElement('option');
-    option.value = mission.id;
-    option.textContent = `${mission.icon} ${mission.label}`;
-    plannerMission.appendChild(option);
-  });
-
-  if (plannerDate) plannerDate.value = isoToFrenchDate(CALENDAR_DATES[0]);
-  if (plannerStart) plannerStart.value = '09:00';
-  if (plannerEnd) plannerEnd.value = '12:00';
-}
-
-// === Authentication ===
 
 function clearAuthAlert() {
   if (authAlert) {
@@ -149,10 +134,10 @@ async function handleLogin(e) {
   }
 
   showAuthAlert('Connexion réussie!', false);
-  setTimeout(() => {
+  setTimeout(async () => {
     clearAuthAlert();
-    refreshSessionUi();
-  }, 1000);
+    await refreshSessionUi();
+  }, 700);
 }
 
 async function handleRegister(e) {
@@ -176,10 +161,10 @@ async function handleRegister(e) {
   }
 
   showAuthAlert('Compte créé! Vous êtes connecté.', false);
-  setTimeout(() => {
+  setTimeout(async () => {
     clearAuthAlert();
-    refreshSessionUi();
-  }, 1000);
+    await refreshSessionUi();
+  }, 700);
 }
 
 function handleLogout() {
@@ -200,86 +185,149 @@ async function refreshSessionUi() {
   }
 
   if (isLoggedIn) {
-    resetForm();
-    await loadAndRenderCalendar();
+    await loadAndRenderSlots();
   }
 }
 
-// === Disponibilité (Mark/Unmark) ===
+async function loadAndRenderSlots() {
+  allSlots = await DataService.getSlots();
+  allRegistrations = await DataService.getRegistrations();
 
-async function handleMarkAvailable() {
-  const mission = plannerMission.value.trim();
-  const rawDate = plannerDate.value.trim();
-  const date = parsePlannerDateInput(rawDate);
-  const startTime = plannerStart.value.trim();
-  const endTime = plannerEnd.value.trim();
-  const comment = plannerDescription.value.trim();
+  applyPendingSlotSelection();
+  renderSlotBoard();
+  renderMySlots();
+}
 
-  if (!mission || !rawDate || !startTime || !endTime) {
-    showPlannerAlert('Veuillez remplir tous les champs.', true);
-    return;
-  }
+function applyPendingSlotSelection() {
+  if (!pendingSlotId) return;
 
-  if (!date) {
-    showPlannerAlert('Date invalide. Utilisez le format JJ/MM/AAAA.', true);
-    return;
-  }
+  const targetSlot = allSlots.find(slot => slot.id === pendingSlotId);
+  if (!targetSlot) return;
 
-  if (!CALENDAR_DATES.includes(date)) {
-    showPlannerAlert('Date invalide. Choisissez une date du 06/05/2026 au 09/05/2026.', true);
-    return;
-  }
+  if (slotFilterMission) slotFilterMission.value = targetSlot.mission;
+  if (slotFilterDate) slotFilterDate.value = targetSlot.date;
+}
 
-  if (endTime <= startTime) {
-    showPlannerAlert('L\'heure de fin doit être après l\'heure de début.', true);
-    return;
-  }
+function renderSlotBoard() {
+  if (!slotsGrid) return;
 
-  const result = await DataService.markAvailability({
-    date,
-    mission,
-    startTime,
-    endTime,
-    comment,
+  const currentUser = DataService.getCurrentVolunteerUser();
+  const missionFilter = slotFilterMission ? slotFilterMission.value : 'all';
+  const dateFilter = slotFilterDate ? slotFilterDate.value : 'all';
+
+  const filteredSlots = allSlots.filter(slot => {
+    if (missionFilter !== 'all' && slot.mission !== missionFilter) return false;
+    if (dateFilter !== 'all' && slot.date !== dateFilter) return false;
+    return true;
   });
 
+  if (filteredSlots.length === 0) {
+    slotsGrid.innerHTML = `
+      <div class="empty-state" style="padding:1rem 1.2rem;">
+        <p>Aucun créneau ne correspond à ce filtre.</p>
+      </div>`;
+    return;
+  }
+
+  const cards = filteredSlots.map(slot => {
+    const mission = DataService.getMissionById(slot.mission);
+    const isMine = !!(currentUser && slot.isSelectedByCurrentUser);
+    const canJoin = !slot.isFull && !isMine;
+    const badge = slot.isFull ? 'Complet' : `${slot.remainingPlaces} place(s) restante(s)`;
+
+    return `
+      <article class="card slot-card" data-slot-id="${escapeAttr(slot.id)}" style="margin-bottom:0.9rem;padding:1rem;">
+        <div style="display:flex;justify-content:space-between;gap:1rem;align-items:flex-start;flex-wrap:wrap">
+          <div>
+            <div style="font-size:0.95rem;color:var(--color-text-muted);margin-bottom:0.25rem">${escapeHtml(formatDate(slot.date))}</div>
+            <h4 style="margin:0 0 0.35rem 0">${escapeHtml(mission ? `${mission.icon} ${mission.label}` : slot.mission)}</h4>
+            <div style="font-weight:600">${escapeHtml(formatTime(slot.startTime))} - ${escapeHtml(formatTime(slot.endTime))}</div>
+          </div>
+          <span class="slot-badge ${slot.isFull ? 'full' : 'open'}">${escapeHtml(badge)}</span>
+        </div>
+        ${slot.description ? `<p style="margin:0.75rem 0 0;color:var(--color-text-muted)">${escapeHtml(slot.description)}</p>` : ''}
+        <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;margin-top:1rem">
+          <button class="btn btn-primary btn-sm join-slot-btn" data-slot-id="${escapeAttr(slot.id)}" ${canJoin ? '' : 'disabled'}>
+            ${isMine ? 'Déjà réservé' : (slot.isFull ? 'Créneau complet' : 'Réserver ce créneau')}
+          </button>
+          <span style="font-size:0.85rem;color:var(--color-text-muted)">${escapeHtml(String(slot.registeredCount || 0))} bénévole(s) inscrit(s)</span>
+        </div>
+      </article>
+    `;
+  }).join('');
+
+  slotsGrid.innerHTML = cards;
+}
+
+function renderMySlots() {
+  if (!mySlotsList) return;
+
+  const currentUser = DataService.getCurrentVolunteerUser();
+  if (!currentUser) {
+    mySlotsList.innerHTML = '';
+    return;
+  }
+
+  const myRegistrations = allRegistrations.filter(reg => reg.userId === currentUser.id);
+  if (myRegistrations.length === 0) {
+    mySlotsList.innerHTML = `
+      <div class="empty-state" style="padding:1rem 1.2rem;">
+        <p>Vous n'avez encore réservé aucun créneau.</p>
+      </div>`;
+    return;
+  }
+
+  mySlotsList.innerHTML = myRegistrations.map(reg => {
+    const mission = DataService.getMissionById(reg.mission);
+    const slotLabel = reg.slot ? `${formatDate(reg.date)} · ${formatTime(reg.startTime)} - ${formatTime(reg.endTime)}` : 'Créneau réservé';
+
+    return `
+      <div class="slot-item" style="display:flex;justify-content:space-between;gap:1rem;align-items:center;padding:0.9rem 1rem;border:1px solid var(--color-border);border-radius:14px;margin-bottom:0.75rem;background:white">
+        <div>
+          <div style="font-weight:600">${escapeHtml(mission ? `${mission.icon} ${mission.label}` : reg.mission)}</div>
+          <div style="font-size:0.9rem;color:var(--color-text-muted)">${escapeHtml(slotLabel)}</div>
+          ${reg.comment ? `<div style="font-size:0.85rem;color:var(--color-text-muted);margin-top:0.25rem">${escapeHtml(reg.comment)}</div>` : ''}
+        </div>
+        <button class="btn btn-sm unregister-btn" type="button" data-reg-id="${escapeAttr(reg.id)}">Retirer</button>
+      </div>
+    `;
+  }).join('');
+}
+
+async function handleSlotAction(e) {
+  const joinBtn = e.target.closest('.join-slot-btn');
+  if (!joinBtn) return;
+
+  const slotId = joinBtn.dataset.slotId;
+  if (!slotId) return;
+
+  const comment = slotComment ? slotComment.value.trim() : '';
+  const result = await DataService.markAvailability({ slotId, comment });
   if (!result.success) {
     showPlannerAlert(result.error, true);
     return;
   }
 
-  showPlannerAlert('Disponibilité ajoutée!', false);
-  resetForm();
-  await loadAndRenderCalendar();
+  showPlannerAlert('Créneau réservé avec succès.', false);
+  if (slotComment) slotComment.value = '';
+  await loadAndRenderSlots();
 }
 
-async function handleCalendarClick(e) {
+async function handleMySlotAction(e) {
   const unregBtn = e.target.closest('.unregister-btn');
-  if (unregBtn) {
-    const regId = unregBtn.dataset.regId;
-    if (!regId) return;
+  if (!unregBtn) return;
 
-    const result = await DataService.unmarkAvailability(regId);
-    if (!result.success) {
-      showPlannerAlert(result.error, true);
-      return;
-    }
+  const regId = unregBtn.dataset.regId;
+  if (!regId) return;
 
-    showPlannerAlert('Disponibilité supprimée.', false);
-    await loadAndRenderCalendar();
+  const result = await DataService.unmarkAvailability(regId);
+  if (!result.success) {
+    showPlannerAlert(result.error, true);
+    return;
   }
-}
 
-function resetForm() {
-  if (plannerMission) plannerMission.value = plannerMission.options[0]?.value || '';
-  if (plannerDate) plannerDate.value = isoToFrenchDate(CALENDAR_DATES[0]);
-  if (plannerStart) plannerStart.value = '09:00';
-  if (plannerEnd) plannerEnd.value = '12:00';
-  if (plannerDescription) plannerDescription.value = '';
-  if (plannerAlert) {
-    plannerAlert.textContent = '';
-    plannerAlert.classList.add('hidden');
-  }
+  showPlannerAlert('Créneau retiré.', false);
+  await loadAndRenderSlots();
 }
 
 function showPlannerAlert(message, isError = true) {
@@ -290,240 +338,15 @@ function showPlannerAlert(message, isError = true) {
   }
 }
 
-// === Rendering ===
-
-async function loadAndRenderCalendar() {
-  allRegistrations = await DataService.getRegistrations();
-  renderCalendar();
-  renderList();
-}
-
-function renderCalendar() {
-  if (!plannerCalendarGrid) return;
-  const currentUser = DataService.getCurrentVolunteerUser();
-  const groupedByDate = groupRegistrationsByDate(allRegistrations, CALENDAR_DATES);
-  const hourRows = CALENDAR_END_HOUR - CALENDAR_START_HOUR;
-  const rowHeight = Math.round(60 * TIMELINE_PIXELS_PER_MINUTE);
-  const trackHeight = Math.round((CALENDAR_END_MINUTE - CALENDAR_START_MINUTE) * TIMELINE_PIXELS_PER_MINUTE);
-
-  let html = '<div class="outlook-board">';
-  html += `<div class="outlook-time-col" style="grid-template-rows: repeat(${hourRows}, ${rowHeight}px);">`;
-
-  for (let hour = CALENDAR_START_HOUR; hour < CALENDAR_END_HOUR; hour++) {
-    const timeLabel = `${hour.toString().padStart(2, '0')}:00`;
-    html += `<div class="outlook-time-label">${timeLabel}</div>`;
-  }
-
-  html += '</div>';
-  html += `<div class="outlook-days" style="grid-template-columns: repeat(${CALENDAR_DATES.length}, minmax(180px, 1fr));">`;
-
-  CALENDAR_DATES.forEach(date => {
-    const dayName = new Date(date + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'short' });
-    const dayNum = new Date(date + 'T00:00:00').toLocaleDateString('fr-FR', { day: 'numeric' });
-    const regsForDay = groupedByDate[date] || [];
-
-    html += '<div class="outlook-day">';
-    html += `<div class="outlook-day-head">${dayName} ${dayNum}</div>`;
-    html += `<div class="outlook-track" style="height:${trackHeight}px;">`;
-    html += `<div class="outlook-hour-lines" style="grid-template-rows: repeat(${hourRows}, 1fr);">`;
-    for (let i = 0; i < hourRows; i++) {
-      html += '<div class="outlook-hour-line"></div>';
-    }
-    html += '</div>';
-    html += '<div class="outlook-events-layer">';
-
-    regsForDay.forEach(reg => {
-      const mission = DataService.getMissionById(reg.mission);
-      const icon = mission ? mission.icon : '📌';
-      const missionLabel = mission ? mission.label : 'Mission';
-      const isCurrentUser = currentUser && currentUser.id === reg.userId;
-
-      const startMinute = parseTimeToMinutes(reg.startTime);
-      const endMinute = parseTimeToMinutes(reg.endTime);
-      const clampedStart = Math.max(CALENDAR_START_MINUTE, startMinute);
-      const clampedEnd = Math.min(CALENDAR_END_MINUTE, endMinute);
-
-      if (clampedEnd <= clampedStart) return;
-
-      const top = Math.round((clampedStart - CALENDAR_START_MINUTE) * TIMELINE_PIXELS_PER_MINUTE);
-      const height = Math.max(18, Math.round((clampedEnd - clampedStart) * TIMELINE_PIXELS_PER_MINUTE));
-      const title = escapeAttr(`${reg.firstName} ${reg.lastName} · ${reg.startTime}-${reg.endTime} · ${missionLabel}`);
-
-      html += `
-        <div class="outlook-event ${isCurrentUser ? 'current-user' : ''}" style="top:${top}px;height:${height}px;" title="${title}">
-          <div class="outlook-event-title">${icon} ${escapeHtmlText(reg.firstName)} ${escapeHtmlText(reg.lastName)}${isCurrentUser ? ' (vous)' : ''}</div>
-          <div class="outlook-event-meta">${reg.startTime} - ${reg.endTime}</div>
-        </div>`;
-    });
-
-    html += '</div></div></div>';
-  });
-
-  html += '</div></div>';
-  plannerCalendarGrid.innerHTML = html;
-}
-
-function groupRegistrationsByDate(registrations, datesToRender) {
-  const dateSet = new Set(datesToRender);
-  const grouped = {};
-
-  datesToRender.forEach(date => {
-    grouped[date] = [];
-  });
-
-  registrations.forEach(reg => {
-    if (!dateSet.has(reg.date)) return;
-    grouped[reg.date].push(reg);
-  });
-
-  datesToRender.forEach(date => {
-    grouped[date].sort((a, b) => parseTimeToMinutes(a.startTime) - parseTimeToMinutes(b.startTime));
-  });
-
-  return grouped;
-}
-
-function parseTimeToMinutes(timeStr) {
-  const [hours, minutes] = String(timeStr || '00:00').split(':');
-  return (parseInt(hours, 10) * 60) + parseInt(minutes, 10);
-}
-
-function parsePlannerDateInput(value) {
-  const normalized = String(value || '').trim();
-  if (!normalized) return null;
-
-  if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
-    return CALENDAR_DATES.includes(normalized) ? normalized : null;
-  }
-
-  const match = normalized.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-  if (!match) return null;
-
-  const day = match[1].padStart(2, '0');
-  const month = match[2].padStart(2, '0');
-  const year = match[3];
-  const isoDate = `${year}-${month}-${day}`;
-
-  const date = new Date(`${isoDate}T00:00:00`);
-  if (Number.isNaN(date.getTime())) return null;
-
-  const isValidDate = date.getFullYear() === parseInt(year, 10)
-    && (date.getMonth() + 1) === parseInt(month, 10)
-    && date.getDate() === parseInt(day, 10);
-
-  if (!isValidDate) return null;
-  return CALENDAR_DATES.includes(isoDate) ? isoDate : null;
-}
-
-function isoToFrenchDate(isoDate) {
-  const parts = String(isoDate || '').split('-');
-  if (parts.length !== 3) return '';
-  return `${parts[2]}/${parts[1]}/${parts[0]}`;
-}
-
-function escapeHtmlText(value) {
+function escapeHtml(value) {
   return String(value)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 function escapeAttr(value) {
-  return String(value)
-    .replace(/&/g, '&amp;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
+  return escapeHtml(value);
 }
-
-function renderList() {
-  if (!joinSlotsList) return;
-
-  joinSlotsList.innerHTML = '';
-  const currentUser = DataService.getCurrentVolunteerUser();
-
-  // Group by date
-  const grouped = {};
-  CALENDAR_DATES.forEach(date => {
-    grouped[date] = {};
-    DataService.getMissions().forEach(mission => {
-      grouped[date][mission.id] = [];
-    });
-  });
-
-  allRegistrations.forEach(reg => {
-    if (grouped[reg.date] && grouped[reg.date][reg.mission]) {
-      grouped[reg.date][reg.mission].push(reg);
-    }
-  });
-
-  // Render
-  CALENDAR_DATES.forEach(date => {
-    const dayLabel = new Date(date + 'T00:00:00').toLocaleDateString('fr-FR', {
-      weekday: 'long',
-      month: 'long',
-      day: 'numeric',
-    });
-
-    const daySection = document.createElement('div');
-    daySection.className = 'list-day-section';
-    daySection.innerHTML = `<h4>${dayLabel}</h4>`;
-
-    let hasContent = false;
-
-    DataService.getMissions().forEach(mission => {
-      const regs = grouped[date][mission.id];
-      if (regs.length === 0) return;
-
-      hasContent = true;
-      const missionSection = document.createElement('div');
-      missionSection.className = 'mission-section';
-      missionSection.innerHTML = `<div class="mission-header">${mission.icon} ${mission.label}</div>`;
-
-      const volList = document.createElement('div');
-      volList.className = 'volunteer-list-compact';
-
-      regs.forEach(reg => {
-        const isCurrentUser = currentUser && reg.userId === currentUser.id;
-        const vol = document.createElement('div');
-        vol.className = 'volunteer-line';
-        const timeRange = `${reg.startTime} - ${reg.endTime}`;
-
-        if (isCurrentUser) {
-          vol.innerHTML = `
-            <div style="flex:1">
-              <strong>${reg.firstName} ${reg.lastName}</strong> (vous)<br>
-              <span style="font-size:0.85rem;color:var(--color-text-muted)">${timeRange}</span>
-              ${reg.comment ? `<br><span style="font-size:0.75rem;color:#666">${reg.comment}</span>` : ''}
-            </div>
-            <button class="unregister-btn" data-reg-id="${reg.id}">Retirer</button>
-          `;
-        } else {
-          vol.innerHTML = `
-            <div>
-              <strong>${reg.firstName} ${reg.lastName}</strong><br>
-              <span style="font-size:0.85rem;color:var(--color-text-muted)">${timeRange}</span>
-              ${reg.comment ? `<br><span style="font-size:0.75rem;color:#666">${reg.comment}</span>` : ''}
-            </div>
-          `;
-        }
-
-        volList.appendChild(vol);
-      });
-
-      missionSection.appendChild(volList);
-      daySection.appendChild(missionSection);
-    });
-
-    if (hasContent) {
-      joinSlotsList.appendChild(daySection);
-    }
-  });
-
-  if (joinSlotsList.innerHTML === '') {
-    joinSlotsList.innerHTML = '<div class="empty-state" style="padding:1rem;text-align:center;color:var(--color-text-muted)">Aucune disponibilité enregistrée pour le moment.</div>';
-  }
-}
-
-

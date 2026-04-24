@@ -4,7 +4,7 @@
  *
  * Stockage persistant via Supabase.
  * La session locale reste côté navigateur, mais toutes les données métiers
- * (comptes bénévoles et disponibilités) passent par la base distante.
+ * (comptes bénévoles, créneaux et inscriptions) passent par la base distante.
  *
  * Structure :
  *  - SLOTS    : créneaux disponibles
@@ -30,18 +30,18 @@ const CONFIG = {
   },
 };
 
-const ALLOWED_DATES = ['2026-05-06', '2026-05-07', '2026-05-08', '2026-05-09'];
+const ALLOWED_DATES = ['2026-05-07', '2026-05-08', '2026-05-09', '2026-05-10'];
 
 /* ================================================================
    MISSIONS
    ================================================================ */
 const MISSIONS = [
-  { id: 'buvette',      label: 'Buvette',               icon: '🍺' },
-  { id: 'sandwichs',    label: 'Préparation sandwichs',  icon: '🥪' },
-  { id: 'terrain',      label: 'Préparation terrain',    icon: '⚾' },
-  { id: 'animation',    label: 'Activités / Animation',  icon: '🎉' },
-  { id: 'accueil',      label: 'Accueil',                icon: '👋' },
-  { id: 'autres',       label: 'Autres missions',        icon: '🔧' },
+  { id: 'restauration',   label: 'Restauration',          icon: '🍽️' },
+  { id: 'caisse_tombola', label: 'Caisse/Tombola',        icon: '🎟️' },
+  { id: 'terrain',        label: 'Terrain',               icon: '⚾' },
+  { id: 'sono_video',     label: 'Sono/vidéo',            icon: '🎤' },
+  { id: 'buvette_1',      label: 'Buvette 1',             icon: '🍺' },
+  { id: 'buvette_2',      label: 'Buvette 2',             icon: '🍺' },
 ];
 
 /**
@@ -162,6 +162,19 @@ function mapRegistrationRow(row) {
   };
 }
 
+function mapSlotRow(row) {
+  return {
+    id: row.id,
+    date: row.date,
+    mission: row.mission,
+    startTime: row.start_time,
+    endTime: row.end_time,
+    maxVolunteers: Number(row.max_volunteers || 1),
+    status: row.status || 'open',
+    description: row.description || '',
+  };
+}
+
 function mapUserRow(row) {
   return {
     id: row.id,
@@ -171,6 +184,56 @@ function mapUserRow(row) {
     password: row.password,
     createdAt: row.created_at,
   };
+}
+
+function enrichSlotsWithRegistrations(slots, registrations, currentUserId = null) {
+  const counts = {};
+  const selectedSlotIds = new Set();
+
+  registrations.forEach(reg => {
+    if (!reg.slotId) return;
+    counts[reg.slotId] = (counts[reg.slotId] || 0) + 1;
+    if (currentUserId && reg.userId === currentUserId) {
+      selectedSlotIds.add(reg.slotId);
+    }
+  });
+
+  return slots.map(slot => {
+    const registeredCount = counts[slot.id] || 0;
+    const remainingPlaces = Math.max(0, slot.maxVolunteers - registeredCount);
+    const isFull = remainingPlaces <= 0 || slot.status === 'full';
+
+    return {
+      ...slot,
+      registeredCount,
+      remainingPlaces,
+      isFull,
+      isSelectedByCurrentUser: selectedSlotIds.has(slot.id),
+    };
+  });
+}
+
+function enrichRegistrationsWithSlots(registrations, slots) {
+  const slotMap = new Map(slots.map(slot => [slot.id, slot]));
+
+  return registrations.map(registration => {
+    const slot = slotMap.get(registration.slotId);
+    if (!slot) {
+      return {
+        ...registration,
+        slot: null,
+      };
+    }
+
+    return {
+      ...registration,
+      date: slot.date,
+      mission: slot.mission,
+      startTime: slot.startTime,
+      endTime: slot.endTime,
+      slot,
+    };
+  });
 }
 
 /* ================================================================
@@ -188,11 +251,30 @@ const DataService = {
 async getRegistrations() {
   if (isSupabaseEnabled()) {
     try {
-      const rows = await supabaseRequest({
-        table: 'registrations',
-        query: 'select=*&order=submitted_at.desc',
-      });
-      return Array.isArray(rows) ? rows.map(mapRegistrationRow) : [];
+      const [slotRows, regRows] = await Promise.all([
+        supabaseRequest({
+          table: 'slots',
+          query: 'select=*&order=date.asc,start_time.asc',
+        }),
+        supabaseRequest({
+          table: 'registrations',
+          query: 'select=*&order=submitted_at.desc',
+        }),
+      ]);
+
+      const slots = Array.isArray(slotRows) ? slotRows.map(mapSlotRow) : [];
+      const registrations = Array.isArray(regRows) ? regRows.map(row => ({
+        id: row.id,
+        userId: row.user_id,
+        firstName: row.first_name,
+        lastName: row.last_name,
+        contact: row.contact,
+        slotId: row.slot_id,
+        comment: row.comment || '',
+        submittedAt: row.submitted_at,
+      })) : [];
+
+      return enrichRegistrationsWithSlots(registrations, slots);
     } catch (err) {
       console.error('Erreur Supabase getRegistrations:', err);
       return [];
@@ -220,26 +302,11 @@ async markAvailability(input) {
     return { success: false, error: 'Connexion requise.' };
   }
 
-  const date = String(input.date || '').trim();
-  const mission = String(input.mission || '').trim();
-  const startTime = String(input.startTime || '').trim();
-  const endTime = String(input.endTime || '').trim();
+  const slotId = String(input.slotId || input.slot_id || '').trim();
+  const comment = String(input.comment || '').trim();
 
-  if (!date || !mission || !startTime || !endTime) {
-    return { success: false, error: 'Données incomplètes.' };
-  }
-
-  if (!ALLOWED_DATES.includes(date)) {
-    return { success: false, error: 'Date invalide.' };
-  }
-
-  if (!MISSIONS.some(m => m.id === mission)) {
-    return { success: false, error: 'Mission inconnue.' };
-  }
-
-  // Validation des horaires
-  if (endTime <= startTime) {
-    return { success: false, error: 'L\'heure de fin doit être après l\'heure de début.' };
+  if (!slotId) {
+    return { success: false, error: 'Créneau manquant.' };
   }
 
   if (!isSupabaseEnabled()) {
@@ -247,23 +314,49 @@ async markAvailability(input) {
   }
 
   try {
-    const duplicateCheckQuery = [
-      'select=id',
-      `user_id=eq.${encodeURIComponent(user.id)}`,
-      `date=eq.${encodeURIComponent(date)}`,
-      `mission=eq.${encodeURIComponent(mission)}`,
-      `start_time=eq.${encodeURIComponent(startTime)}`,
-      `end_time=eq.${encodeURIComponent(endTime)}`,
-      'limit=1',
-    ].join('&');
-
-    const existing = await supabaseRequest({
-      table: 'registrations',
-      query: duplicateCheckQuery,
+    const slotRows = await supabaseRequest({
+      table: 'slots',
+      query: `select=*&id=eq.${encodeURIComponent(slotId)}&limit=1`,
       prefer: '',
     });
-    if (Array.isArray(existing) && existing.length > 0) {
+    const slot = Array.isArray(slotRows) && slotRows.length ? mapSlotRow(slotRows[0]) : null;
+    if (!slot) {
+      return { success: false, error: 'Créneau introuvable.' };
+    }
+
+    if (!ALLOWED_DATES.includes(slot.date)) {
+      return { success: false, error: 'Créneau invalide.' };
+    }
+
+    if (!MISSIONS.some(m => m.id === slot.mission)) {
+      return { success: false, error: 'Mission inconnue.' };
+    }
+
+    if (slot.status === 'closed') {
+      return { success: false, error: 'Ce créneau est fermé.' };
+    }
+
+    const registrations = await supabaseRequest({
+      table: 'registrations',
+      query: [
+        'select=id,user_id,slot_id',
+        `slot_id=eq.${encodeURIComponent(slotId)}`,
+        `user_id=eq.${encodeURIComponent(user.id)}`,
+        'limit=1',
+      ].join('&'),
+      prefer: '',
+    });
+    if (Array.isArray(registrations) && registrations.length > 0) {
       return { success: false, error: 'Vous êtes déjà marqué disponible pour ce créneau.' };
+    }
+
+    const slotRegistrations = await supabaseRequest({
+      table: 'registrations',
+      query: `select=id&slot_id=eq.${encodeURIComponent(slotId)}`,
+      prefer: '',
+    });
+    if (Array.isArray(slotRegistrations) && slotRegistrations.length >= slot.maxVolunteers) {
+      return { success: false, error: 'Ce créneau est complet.' };
     }
 
     const rows = await supabaseRequest({
@@ -274,11 +367,8 @@ async markAvailability(input) {
         first_name: user.firstName,
         last_name: user.lastName,
         contact: user.contact,
-        date,
-        mission,
-        start_time: startTime,
-        end_time: endTime,
-        comment: String(input.comment || '').trim(),
+        slot_id: slotId,
+        comment,
       },
     });
 
@@ -463,9 +553,34 @@ async unmarkAvailability(registrationId) {
    * @returns {Promise<Array>}
    */
   async getSlots() {
-    // Les "slots" sont maintenant des disponibilités groupées par jour/mission
-    // Génération dynamique pour la page d'accueil
-    return [];
+    if (!isSupabaseEnabled()) {
+      return [];
+    }
+
+    try {
+      const [slotRows, regRows] = await Promise.all([
+        supabaseRequest({
+          table: 'slots',
+          query: 'select=*&order=date.asc,start_time.asc',
+        }),
+        supabaseRequest({
+          table: 'registrations',
+          query: 'select=slot_id,user_id',
+        }),
+      ]);
+
+      const slots = Array.isArray(slotRows) ? slotRows.map(mapSlotRow) : [];
+      const registrations = Array.isArray(regRows) ? regRows.map(row => ({
+        slotId: row.slot_id,
+        userId: row.user_id,
+      })) : [];
+      const currentUser = this.getCurrentVolunteerUser();
+
+      return enrichSlotsWithRegistrations(slots, registrations, currentUser ? currentUser.id : null);
+    } catch (err) {
+      console.error('Erreur Supabase getSlots:', err);
+      return [];
+    }
   },
 
   /**

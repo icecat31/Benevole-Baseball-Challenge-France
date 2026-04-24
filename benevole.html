@@ -37,7 +37,7 @@
       <section class="form-card" aria-labelledby="auth-title">
         <div class="form-header">
           <h2 id="auth-title">Connexion bénévole</h2>
-          <p>Vous arrivez non connecté. Connectez-vous pour vous placer dans le calendrier, créer un créneau ou rejoindre un créneau existant.</p>
+          <p>Connectez-vous pour rejoindre un créneau déjà défini par l’organisation.</p>
         </div>
 
         <div id="auth-alert" class="alert alert-danger hidden" role="alert" aria-live="assertive">
@@ -96,8 +96,8 @@
 
       <section id="planner-card" class="form-card hidden" aria-labelledby="planner-title" style="margin-top:1rem">
         <div class="form-header">
-          <h2 id="planner-title">Calendrier de disponibilités</h2>
-          <p>Indiquez quand vous êtes disponible pour chaque mission. Tous les bénévoles peuvent voir qui est disponible à chaque moment.</p>
+          <h2 id="planner-title">Choix d'un créneau</h2>
+          <p>Sélectionnez un créneau existant correspondant à votre disponibilité. Les créneaux sont créés par l’organisation et visibles par tous.</p>
         </div>
 
         <div id="planner-alert" class="alert alert-info hidden" role="status" aria-live="polite">
@@ -107,46 +107,38 @@
 
         <div class="planner-layout">
           <div class="planner-create card">
-            <h3>Me signaler disponible</h3>
+            <h3>Filtres</h3>
             <div class="form-group">
-              <label for="planner-mission">Mission</label>
-              <select id="planner-mission" name="mission"></select>
-            </div>
-            <div class="form-group">
-              <label for="planner-date">Date</label>
-              <input id="planner-date" type="text" inputmode="numeric" placeholder="JJ/MM/AAAA" pattern="^\\d{2}/\\d{2}/\\d{4}$" />
-              <p class="form-note">Format attendu: JJ/MM/AAAA (du 06/05/2026 au 09/05/2026)</p>
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label for="planner-start">Début</label>
-                <input id="planner-start" type="time" value="09:00" />
-              </div>
-              <div class="form-group">
-                <label for="planner-end">Fin</label>
-                <input id="planner-end" type="time" value="12:00" />
-              </div>
+              <label for="slot-filter-mission">Mission</label>
+              <select id="slot-filter-mission" name="slot-filter-mission">
+                <option value="all">Toutes les missions</option>
+              </select>
             </div>
             <div class="form-group">
-              <label for="planner-description">Note (optionnel)</label>
-              <textarea id="planner-description" rows="2" placeholder="Ex : peut faire 2h seulement"></textarea>
+              <label for="slot-filter-date">Date</label>
+              <select id="slot-filter-date" name="slot-filter-date">
+                <option value="all">Toutes les dates</option>
+              </select>
             </div>
-            <button id="create-slot-btn" class="btn btn-primary btn-block" type="button">Ajouter ma disponibilité</button>
-            <button id="cancel-edit-btn" class="btn btn-block hidden" type="button" style="margin-top:0.5rem;background:#eceff5;border:1px solid var(--color-border)">Annuler</button>
+            <div class="form-group">
+              <label for="slot-comment">Note pour l'organisation (optionnel)</label>
+              <textarea id="slot-comment" rows="2" placeholder="Ex : besoin d'un créneau court, je peux aider au transport..."></textarea>
+            </div>
+            <p class="form-note">Choisissez un créneau dans la liste à droite pour vous inscrire.</p>
           </div>
 
           <div class="planner-calendar card">
             <div class="planner-calendar-head">
-              <h3>Vue calendrier à la minute (6 → 9 mai)</h3>
+              <h3>Créneaux disponibles</h3>
             </div>
-            <div id="planner-calendar-grid" class="planner-calendar-grid" aria-live="polite"></div>
+            <div id="slots-grid" class="slots-grid" aria-live="polite"></div>
           </div>
         </div>
 
         <div class="planner-join card" style="margin-top:1rem">
-          <h3>Créneaux existants</h3>
-          <p class="form-note" style="margin-bottom:0.75rem">Cliquez sur un créneau pour vous ajouter s'il reste des places.</p>
-          <div id="join-slots-list"></div>
+          <h3>Mes créneaux</h3>
+          <p class="form-note" style="margin-bottom:0.75rem">Voici les créneaux que vous avez déjà réservés.</p>
+          <div id="my-slots-list"></div>
         </div>
       </section>
 
