@@ -65,7 +65,10 @@
             </div>
             <div class="form-group">
               <label for="login-password">Mot de passe</label>
-              <input id="login-password" name="password" type="password" placeholder="Votre mot de passe" required />
+              <div class="password-field">
+                <input id="login-password" name="password" type="password" placeholder="Votre mot de passe" required />
+                <button class="password-toggle" type="button" data-password-toggle="login-password" aria-label="Afficher le mot de passe" aria-pressed="false">👁️</button>
+              </div>
             </div>
             <button class="btn btn-primary btn-block" type="submit">Se connecter</button>
           </form>
@@ -87,7 +90,10 @@
             </div>
             <div class="form-group">
               <label for="register-password">Mot de passe</label>
-              <input id="register-password" name="password" type="password" minlength="6" placeholder="6 caractères minimum" required />
+              <div class="password-field">
+                <input id="register-password" name="password" type="password" minlength="6" placeholder="6 caractères minimum" required />
+                <button class="password-toggle" type="button" data-password-toggle="register-password" aria-label="Afficher le mot de passe" aria-pressed="false">👁️</button>
+              </div>
             </div>
             <button class="btn btn-primary btn-block" type="submit">Créer mon compte</button>
           </form>
@@ -154,6 +160,7 @@
 
   <!-- Scripts -->
   <script src="js/supabase-config.js"></script>
+  <script src="js/password-toggle.js"></script>
   <script src="js/data.js?v=20260415-1"></script>
   <script src="js/form.js?v=20260415-1"></script>
 

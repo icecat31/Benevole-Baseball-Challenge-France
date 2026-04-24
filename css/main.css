@@ -684,6 +684,47 @@ header {
   min-height: 90px;
 }
 
+.password-field {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+}
+
+.password-field input {
+  padding-right: 3rem;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 0.45rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  line-height: 1;
+  transition: background var(--transition), color var(--transition), transform var(--transition);
+}
+
+.password-toggle:hover,
+.password-toggle:focus-visible {
+  background: rgba(17, 17, 17, 0.06);
+  color: var(--color-primary);
+  outline: none;
+}
+
+.password-toggle.is-visible {
+  color: var(--color-secondary);
+}
+
 .form-error {
   color: var(--color-danger);
   font-size: 0.8rem;

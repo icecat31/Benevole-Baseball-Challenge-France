@@ -46,15 +46,18 @@
         <form id="login-form" novalidate>
           <div class="form-group" style="text-align:left">
             <label for="password">Mot de passe</label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              autocomplete="current-password"
-              placeholder="••••••••••"
-              aria-required="true"
-              required
-            />
+            <div class="password-field">
+              <input
+                type="password"
+                id="password"
+                name="password"
+                autocomplete="current-password"
+                placeholder="••••••••••"
+                aria-required="true"
+                required
+              />
+              <button class="password-toggle" type="button" data-password-toggle="password" aria-label="Afficher le mot de passe" aria-pressed="false">👁️</button>
+            </div>
           </div>
           <button type="submit" class="btn btn-primary btn-block" style="margin-top:0.5rem">
             Accéder au tableau de bord
@@ -186,6 +189,7 @@
 
   <!-- Scripts -->
   <script src="js/supabase-config.js"></script>
+  <script src="js/password-toggle.js"></script>
   <script src="js/data.js"></script>
   <script src="js/admin.js"></script>
 
