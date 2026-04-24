@@ -234,6 +234,8 @@ function renderSlotBoard() {
     const isMine = !!(currentUser && slot.isSelectedByCurrentUser);
     const canJoin = !slot.isFull && !isMine;
     const badge = slot.isFull ? 'Complet' : `${slot.remainingPlaces} place(s) restante(s)`;
+    const slotRegistrations = allRegistrations.filter(reg => reg.slotId === slot.id);
+    const volunteerNames = slotRegistrations.map(formatVolunteerShortName).filter(Boolean);
 
     return `
       <article class="card slot-card" data-slot-id="${escapeAttr(slot.id)}" style="margin-bottom:0.9rem;padding:1rem;">
@@ -246,9 +248,10 @@ function renderSlotBoard() {
           <span class="slot-badge ${slot.isFull ? 'full' : 'open'}">${escapeHtml(badge)}</span>
         </div>
         ${slot.description ? `<p style="margin:0.75rem 0 0;color:var(--color-text-muted)">${escapeHtml(slot.description)}</p>` : ''}
+        ${volunteerNames.length ? `<p style="margin:0.65rem 0 0;font-size:0.86rem;color:var(--color-text-muted)"><strong>Inscrits:</strong> ${escapeHtml(volunteerNames.join(', '))}</p>` : ''}
         <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;margin-top:1rem">
           <button class="btn btn-primary btn-sm join-slot-btn" data-slot-id="${escapeAttr(slot.id)}" ${canJoin ? '' : 'disabled'}>
-            ${isMine ? 'Déjà réservé' : (slot.isFull ? 'Créneau complet' : 'Réserver ce créneau')}
+            ${slot.isFull ? 'Créneau complet' : 'S\'ajouter'}
           </button>
           <span style="font-size:0.85rem;color:var(--color-text-muted)">${escapeHtml(String(slot.registeredCount || 0))} bénévole(s) inscrit(s)</span>
         </div>
@@ -349,4 +352,13 @@ function escapeHtml(value) {
 
 function escapeAttr(value) {
   return escapeHtml(value);
+}
+
+function formatVolunteerShortName(registration) {
+  const firstName = String(registration.firstName || '').trim();
+  const lastName = String(registration.lastName || '').trim();
+  if (!firstName) return '';
+  if (!lastName) return firstName;
+
+  return `${firstName} . ${lastName.charAt(0).toUpperCase()}`;
 }

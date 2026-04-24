@@ -81,9 +81,11 @@ function renderSlots(slots) {
     const mission = DataService.getMissionById(slot.mission);
     const badge = slot.isFull ? 'Complet' : `${slot.remainingPlaces} place(s) restante(s)`;
     const isMine = !!(currentUser && slot.isSelectedByCurrentUser);
-    const actionLabel = isMine ? 'Déjà réservé' : (slot.isFull ? 'Créneau complet' : 'Réserver ce créneau');
+    const actionLabel = slot.isFull ? 'Créneau complet' : 'S\'ajouter';
     const actionClass = slot.isFull ? 'btn btn-sm' : 'btn btn-primary btn-sm';
     const href = `benevole.html?slot=${encodeURIComponent(slot.id)}`;
+    const slotRegistrations = allRegistrations.filter(reg => reg.slotId === slot.id);
+    const volunteerNames = slotRegistrations.map(formatVolunteerShortName).filter(Boolean);
 
     return `
       <article class="card slot-card" style="margin-bottom:1rem;padding:1rem;">
@@ -96,6 +98,7 @@ function renderSlots(slots) {
           <span class="slot-badge ${slot.isFull ? 'full' : 'open'}">${escapeHtml(badge)}</span>
         </div>
         ${slot.description ? `<p style="margin:0.75rem 0 0;color:var(--color-text-muted)">${escapeHtml(slot.description)}</p>` : ''}
+        ${volunteerNames.length ? `<p style="margin:0.65rem 0 0;font-size:0.86rem;color:var(--color-text-muted)"><strong>Inscrits:</strong> ${escapeHtml(volunteerNames.join(', '))}</p>` : ''}
         <div style="display:flex;justify-content:space-between;gap:0.75rem;flex-wrap:wrap;align-items:center;margin-top:1rem">
           <span style="font-size:0.85rem;color:var(--color-text-muted)">${escapeHtml(String(slot.registeredCount || 0))} bénévole(s) inscrit(s)</span>
           ${slot.isFull ? `<button class="${actionClass}" type="button" disabled>${escapeHtml(actionLabel)}</button>` : `<a class="${actionClass}" href="${href}">${escapeHtml(actionLabel)}</a>`}
@@ -174,4 +177,13 @@ function escapeHtml(value) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+}
+
+function formatVolunteerShortName(registration) {
+  const firstName = String(registration.firstName || '').trim();
+  const lastName = String(registration.lastName || '').trim();
+  if (!firstName) return '';
+  if (!lastName) return firstName;
+
+  return `${firstName} . ${lastName.charAt(0).toUpperCase()}`;
 }
