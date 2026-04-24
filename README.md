@@ -1,67 +1,73 @@
 # ⚾ Bénévoles — Challenge de France Baseball 2026
 
-Application web statique de gestion des bénévoles pour le **Challenge de France de Baseball 2026** à Toulouse.
+Site web pour gérer les bénévoles du Challenge de France de Baseball 2026 à Toulouse.
+## Version simple
 
-## Objectif
+Le site sert à afficher des créneaux de bénévolat, à laisser une personne créer un compte, se connecter, puis réserver un créneau précis.
+Une personne peut aussi consulter les créneaux disponibles depuis la page d’accueil. L’administration permet de voir les inscriptions, filtrer les données, exporter la liste en CSV et supprimer une inscription si besoin.
 
-Permettre à des bénévoles de créer un compte, se connecter, enregistrer leurs disponibilités par créneau, et permettre à un administrateur de consulter, filtrer et supprimer les inscriptions.
+Les données sont partagées entre tous les utilisateurs grâce à Supabase. Cela veut dire que si une personne s’inscrit, les autres voient la même information.
+## Ce que fait le site
 
-## Fonctionnalités essentielles
-
-### Côté public
-- Page d’accueil avec présentation de l’événement et aperçu des disponibilités.
+- Page d’accueil avec présentation de l’événement et liste des créneaux.
 - Filtrage des créneaux par mission et par date.
-- Vue calendrier des disponibilités par jour et par horaire.
-- Formulaire de création de compte bénévole.
-- Connexion bénévole par email/téléphone et mot de passe.
-- Ajout d’une disponibilité avec mission, date, heure de début, heure de fin et note optionnelle.
-- Préremplissage possible du formulaire depuis l’URL avec date et mission.
-- Confirmation visuelle après ajout ou suppression d’une disponibilité.
-- Liste des créneaux existants avec possibilité de rejoindre un créneau.
+- Création de compte bénévole.
+- Connexion bénévole avec email ou téléphone et mot de passe.
+- Réservation d’un créneau défini par l’organisation.
+- Affichage des créneaux déjà réservés par la personne connectée.
+- Page d’administration protégée par mot de passe.
+- Consultation des inscriptions, filtres, export CSV et suppression.
+## Règles du projet
 
-### Côté administration
-- Page admin protégée par mot de passe.
-- Tableau des inscriptions avec filtres par mission et par date.
-- Vue compacte des disponibilités groupées par jour.
-- Statistiques en temps réel sur les inscriptions.
-- Export CSV des inscriptions.
-- Suppression d’une inscription avec confirmation.
-
-## Règles métier
-
-- Une inscription contient au minimum: prénom, nom, contact, mission, date, heure de début, heure de fin.
-- Les missions disponibles sont: Buvette, Préparation sandwichs, Préparation terrain, Activités / Animation, Accueil, Autres missions.
-- Les dates autorisées sont du 06/05/2026 au 09/05/2026.
-- L’heure de fin doit être strictement après l’heure de début.
-- Un bénévole ne peut pas enregistrer deux fois exactement le même créneau.
-- Les disponibilités doivent être visibles par tous les utilisateurs.
+- Les créneaux sont fixes et créés à l’avance par l’organisation.
+- Un bénévole réserve un créneau existant, il ne crée pas lui-même son horaire.
+- Les missions utilisées sont : Restauration, Caisse/Tombola, Terrain, Sono/vidéo, Buvette 1 et Buvette 2.
+- Les dates prévues sont du 07/05/2026 au 10/05/2026.
+- Un créneau a une capacité maximale.
+- Les données doivent être visibles par tous les utilisateurs.
 
 ## Pages du site
-
 - `index.html` : page d’accueil et consultation des créneaux.
-- `benevole.html` : inscription, connexion et ajout de disponibilité.
-- `admin.html` : administration des inscriptions.
+- `benevole.html` : connexion, création de compte et réservation d’un créneau.
+- `admin.html` : tableau de bord d’administration.
+## Pour un développeur
 
-## Structure technique
-
+### Architecture
 - Frontend en HTML, CSS et JavaScript vanilla.
-- Données partagées via Supabase.
+- Base de données partagée via Supabase.
 - Site pensé mobile-first et responsive.
 - Déploiement possible sur Netlify.
 
-## Données manipulées
+### Fichiers importants
+- `js/data.js` : couche d’accès aux données.
+- `js/slots.js` : affichage des créneaux sur la page d’accueil.
+- `js/form.js` : connexion, inscription et réservation côté bénévole.
+- `js/admin.js` : tableau de bord admin.
+- `js/supabase-config.js` : configuration publique Supabase chargée dans le navigateur.
+- `supabase_slots_seed.sql` : script SQL pour recréer et remplir la base.
+### Données manipulées
 
 - `volunteer_users` : comptes bénévoles.
-- `registrations` : disponibilités / inscriptions.
-- Les données doivent être partagées entre plusieurs personnes en temps réel via la base distante.
+- `slots` : créneaux disponibles.
+- `registrations` : réservations des bénévoles.
+### Règles techniques
 
-## Prompt prêt à réutiliser
+- Le frontend ne doit pas dépendre de `localStorage` pour les données métier.
+- Le script `js/supabase-config.js` doit être chargé avant `js/data.js`.
+- Les missions et les dates côté frontend doivent correspondre aux valeurs de la base.
+- La réservation d’un créneau passe par `slot_id`.
 
-Tu peux utiliser ce résumé comme base pour recréer le site:
+## Mise en route
+1. Exécuter le script SQL dans Supabase.
+2. Vérifier que les données de test et les créneaux sont bien présents.
+3. Ouvrir le site dans le navigateur.
+4. Vérifier que la page d’accueil affiche les créneaux et que la réservation fonctionne.
 
-> Crée une application web responsive de gestion de bénévoles pour un événement sportif. Le site doit avoir une page d’accueil publique avec vue des créneaux, filtres par mission et date, et affichage des disponibilités partagées. Une page d’inscription doit permettre de créer un compte bénévole, se connecter, puis ajouter des disponibilités avec mission, date, heure de début, heure de fin et commentaire optionnel. Les disponibilités doivent être stockées dans une base de données partagée afin que plusieurs personnes voient les mêmes données. Une page admin protégée doit afficher les inscriptions, permettre le filtrage, l’export CSV et la suppression d’entrées. Les missions sont: Buvette, Préparation sandwichs, Préparation terrain, Activités / Animation, Accueil, Autres missions. Les dates autorisées vont du 06/05/2026 au 09/05/2026.
+## Prompt de reprise
+Tu peux utiliser ce résumé pour recréer le site :
+
+> Crée une application web responsive pour gérer les bénévoles du Challenge de France Baseball 2026 à Toulouse. Le site doit avoir une page d’accueil publique qui affiche des créneaux fixes, filtrables par mission et par date. Une page bénévole doit permettre de créer un compte, se connecter avec email ou téléphone et mot de passe, puis réserver un créneau existant. Une page admin protégée doit afficher les inscriptions, permettre le filtrage, l’export CSV et la suppression d’une inscription. Les données doivent être partagées entre plusieurs utilisateurs via Supabase. Les missions sont : Restauration, Caisse/Tombola, Terrain, Sono/vidéo, Buvette 1 et Buvette 2. Les dates sont du 07/05/2026 au 10/05/2026.
 
 ## Remarque
-
-Le projet est actuellement branché sur Supabase pour les données partagées. Le frontend ne doit pas dépendre du stockage local pour les inscriptions ou les comptes.
+Le projet repose sur une base distante pour que tout le monde voie les mêmes créneaux et les mêmes inscriptions.
 
