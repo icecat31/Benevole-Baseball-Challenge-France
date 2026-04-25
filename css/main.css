@@ -651,7 +651,7 @@ header {
   margin-left: 2px;
 }
 
-.form-group input,
+.form-group input:not(.password-field input),
 .form-group select,
 .form-group textarea {
   width: 100%;
@@ -663,6 +663,10 @@ header {
   color: var(--color-text);
   background: #fff;
   transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.form-group .password-field input {
+  padding: 0.6rem 0.85rem;
 }
 
 .form-group input:focus,
@@ -685,38 +689,54 @@ header {
 }
 
 .password-field {
-  position: relative;
   display: flex;
-  align-items: stretch;
+  align-items: center;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 0;
+  background: #fff;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.password-field:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(0,63,145,0.12);
 }
 
 .password-field input {
-  padding-right: 3rem;
+  flex: 1;
+  border: none;
+  padding: 0.6rem 0.85rem;
+  font-size: 0.92rem;
+  font-family: var(--font);
+  color: var(--color-text);
+  background: transparent;
+}
+
+.password-field input:focus {
+  outline: none;
 }
 
 .password-toggle {
-  position: absolute;
-  right: 0.45rem;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 2rem;
-  height: 2rem;
-  border: 1px solid transparent;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--color-text-muted);
-  cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  width: 2.2rem;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
   font-size: 1rem;
   line-height: 1;
-  transition: background var(--transition), color var(--transition), transform var(--transition);
+  padding: 0;
+  flex-shrink: 0;
+  transition: color var(--transition), background var(--transition);
 }
 
 .password-toggle:hover,
 .password-toggle:focus-visible {
-  background: rgba(17, 17, 17, 0.06);
+  background: rgba(17, 17, 17, 0.04);
   color: var(--color-primary);
   outline: none;
 }
