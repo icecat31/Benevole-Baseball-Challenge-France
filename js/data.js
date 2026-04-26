@@ -350,6 +350,39 @@ async markAvailability(input) {
       return { success: false, error: 'Vous êtes déjà marqué disponible pour ce créneau.' };
     }
 
+    // Empêche l'inscription sur plusieurs activités au même horaire/jour.
+    const concurrentSlots = await supabaseRequest({
+      table: 'slots',
+      query: [
+        'select=id',
+        `date=eq.${encodeURIComponent(slot.date)}`,
+        `start_time=eq.${encodeURIComponent(slot.startTime)}`,
+        `end_time=eq.${encodeURIComponent(slot.endTime)}`,
+      ].join('&'),
+      prefer: '',
+    });
+
+    const concurrentSlotIds = Array.isArray(concurrentSlots)
+      ? concurrentSlots.map(row => row.id).filter(Boolean)
+      : [];
+
+    if (concurrentSlotIds.length > 0) {
+      const conflictRows = await supabaseRequest({
+        table: 'registrations',
+        query: [
+          'select=id,slot_id',
+          `user_id=eq.${encodeURIComponent(user.id)}`,
+          `slot_id=in.(${concurrentSlotIds.map(id => encodeURIComponent(id)).join(',')})`,
+          'limit=1',
+        ].join('&'),
+        prefer: '',
+      });
+
+      if (Array.isArray(conflictRows) && conflictRows.length > 0) {
+        return { success: false, error: 'Vous êtes déjà inscrit sur une autre activité à ce même horaire.' };
+      }
+    }
+
     const slotRegistrations = await supabaseRequest({
       table: 'registrations',
       query: `select=id&slot_id=eq.${encodeURIComponent(slotId)}`,

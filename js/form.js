@@ -212,8 +212,15 @@ function renderSlotBoard() {
   if (!slotsGrid) return;
 
   const currentUser = DataService.getCurrentVolunteerUser();
+  const currentUserId = currentUser ? currentUser.id : null;
   const missionFilter = slotFilterMission ? slotFilterMission.value : 'all';
   const dateFilter = slotFilterDate ? slotFilterDate.value : 'all';
+
+  const myTimeKeys = new Set(
+    allRegistrations
+      .filter(reg => currentUserId && reg.userId === currentUserId && reg.date && reg.startTime && reg.endTime)
+      .map(reg => `${reg.date}|${reg.startTime}|${reg.endTime}`)
+  );
 
   const filteredSlots = allSlots.filter(slot => {
     if (missionFilter !== 'all' && slot.mission !== missionFilter) return false;
@@ -232,7 +239,9 @@ function renderSlotBoard() {
   const cards = filteredSlots.map(slot => {
     const mission = DataService.getMissionById(slot.mission);
     const isMine = !!(currentUser && slot.isSelectedByCurrentUser);
-    const canJoin = !slot.isFull && !isMine;
+    const slotTimeKey = `${slot.date}|${slot.startTime}|${slot.endTime}`;
+    const hasTimeConflict = myTimeKeys.has(slotTimeKey) && !isMine;
+    const canJoin = !slot.isFull && !isMine && !hasTimeConflict;
     const badge = slot.isFull ? 'Complet' : `${slot.remainingPlaces} place(s) restante(s)`;
     const slotRegistrations = allRegistrations.filter(reg => reg.slotId === slot.id);
     const volunteerNames = slotRegistrations.map(formatVolunteerShortName).filter(Boolean);
@@ -251,7 +260,7 @@ function renderSlotBoard() {
         ${volunteerNames.length ? `<p style="margin:0.65rem 0 0;font-size:0.86rem;color:var(--color-text-muted)"><strong>Inscrits:</strong> ${escapeHtml(volunteerNames.join(', '))}</p>` : ''}
         <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;margin-top:1rem">
           <button class="btn btn-primary btn-sm join-slot-btn" data-slot-id="${escapeAttr(slot.id)}" ${canJoin ? '' : 'disabled'}>
-            ${slot.isFull ? 'Créneau complet' : 'S\'ajouter'}
+            ${slot.isFull ? 'Créneau complet' : hasTimeConflict ? 'Conflit horaire' : 'S\'ajouter'}
           </button>
           <span style="font-size:0.85rem;color:var(--color-text-muted)">${escapeHtml(String(slot.registeredCount || 0))} bénévole(s) inscrit(s)</span>
         </div>
