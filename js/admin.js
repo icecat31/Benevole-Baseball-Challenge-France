@@ -82,7 +82,10 @@ async function loadDashboard() {
     renderRegistrationsTab(registrations);
     renderAvailabilityTab(slots, registrations);
     renderCalendarTab(slots, registrations);
+<<<<<<< HEAD
     renderAccountsTab(users);
+=======
+>>>>>>> 12febf17e2e990897c4ec0d45411b0794b10e6ab
     setupTabs();
     setupExport(registrations);
     setupDeleteModal(registrations);
@@ -314,6 +317,7 @@ function renderCalendarTab(slots, registrations) {
 }
 
 /* ================================================================
+<<<<<<< HEAD
    Onglet comptes créés
    ================================================================ */
 function renderAccountsTab(users) {
@@ -335,6 +339,8 @@ function renderAccountsTab(users) {
 }
 
 /* ================================================================
+=======
+>>>>>>> 12febf17e2e990897c4ec0d45411b0794b10e6ab
    Onglets
    ================================================================ */
 function setupTabs() {
