@@ -578,6 +578,28 @@ async unmarkAvailability(registrationId) {
     return !!this.getCurrentVolunteerUser();
   },
 
+  /**
+   * Liste les comptes bénévoles créés.
+   * @returns {Promise<Array>}
+   */
+  async getVolunteerUsers() {
+    if (!isSupabaseEnabled()) {
+      return [];
+    }
+
+    try {
+      const rows = await supabaseRequest({
+        table: 'volunteer_users',
+        query: 'select=*&order=created_at.desc',
+      });
+
+      return Array.isArray(rows) ? rows.map(mapUserRow) : [];
+    } catch (err) {
+      console.error('Erreur Supabase getVolunteerUsers:', err);
+      return [];
+    }
+  },
+
   /* ---- Slots (lecture seule pour affichage) ---- */
 
   /**

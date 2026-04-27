@@ -198,6 +198,82 @@ tbody td {
   padding: 1rem;
 }
 
+/* ---- Admin calendar view ---- */
+.calendar-admin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.calendar-day-card {
+  background: white;
+  border-radius: var(--radius);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.calendar-day-title {
+  margin: 0;
+  padding: 0.85rem 1rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: white;
+  background: var(--color-primary);
+}
+
+.calendar-day-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.calendar-slot-item {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 0.75rem;
+  align-items: start;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.calendar-slot-item:last-child {
+  border-bottom: none;
+}
+
+.calendar-slot-time {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  background: #f4f6fb;
+  border: 1px solid #d8e0ef;
+  border-radius: 10px;
+  padding: 0.25rem 0.45rem;
+  text-align: center;
+  line-height: 1.3;
+}
+
+.calendar-slot-content {
+  min-width: 0;
+}
+
+.calendar-slot-mission {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 0.15rem;
+}
+
+.calendar-slot-meta {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  margin-bottom: 0.2rem;
+}
+
+.calendar-slot-volunteers {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
 .slot-volunteers {
   margin-top: 0.75rem;
 }
@@ -290,5 +366,15 @@ tbody td {
 
   tbody td:nth-child(n+5) {
     display: none;
+  }
+
+  .calendar-slot-item {
+    grid-template-columns: 1fr;
+    gap: 0.45rem;
+  }
+
+  .calendar-slot-time {
+    text-align: left;
+    width: fit-content;
   }
 }
