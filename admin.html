@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="robots" content="noindex, nofollow" />
   <title>Administration — Bénévoles Challenge de France 2026</title>
-  <link rel="stylesheet" href="css/main.css?v=20260425-1" />
-  <link rel="stylesheet" href="css/admin.css?v=20260425-1" />
+  <link rel="stylesheet" href="css/main.css?v=20260427-1" />
+  <link rel="stylesheet" href="css/admin.css?v=20260427-1" />
 </head>
 <body>
 
@@ -112,6 +112,9 @@
           <button class="tab-btn" data-tab="tab-slots" role="tab" aria-selected="false" aria-controls="tab-slots">
             📅 Créneaux
           </button>
+          <button class="tab-btn" data-tab="tab-calendar" role="tab" aria-selected="false" aria-controls="tab-calendar">
+            🗓️ Calendrier
+          </button>
         </div>
 
         <!-- ---- Onglet Inscriptions ---- -->
@@ -159,6 +162,13 @@
           </div>
         </div>
 
+        <!-- ---- Onglet Calendrier ---- -->
+        <div id="tab-calendar" class="tab-panel" role="tabpanel">
+          <div id="calendar-admin-container" aria-live="polite">
+            <p style="color:var(--color-text-muted)">Chargement…</p>
+          </div>
+        </div>
+
       </div><!-- /admin-main -->
     </div><!-- /admin-dashboard -->
 
@@ -188,10 +198,10 @@
   </footer>
 
   <!-- Scripts -->
-  <script src="js/supabase-config.js"></script>
-  <script src="js/password-toggle.js"></script>
-  <script src="js/data.js"></script>
-  <script src="js/admin.js"></script>
+  <script src="js/supabase-config.js?v=20260427-1"></script>
+  <script src="js/password-toggle.js?v=20260427-1"></script>
+  <script src="js/data.js?v=20260427-1"></script>
+  <script src="js/admin.js?v=20260427-1"></script>
 
   <style>
     /* Accessibilité : classe sr-only */
