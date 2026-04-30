@@ -744,6 +744,28 @@ async unmarkAvailability(registrationId) {
     }
   },
 
+  /**
+   * Récupère un bénévole par son ID depuis la base.
+   * @param {string} id
+   * @returns {Promise<Object|null>}
+   */
+  async getVolunteerUserById(id) {
+    if (!id) return null;
+    if (!isSupabaseEnabled()) return null;
+
+    try {
+      const rows = await supabaseRequest({
+        table: 'volunteer_users',
+        query: `select=*&id=eq.${encodeURIComponent(id)}&limit=1`,
+        prefer: '',
+      });
+      return Array.isArray(rows) && rows.length ? mapUserRow(rows[0]) : null;
+    } catch (err) {
+      console.error('Erreur Supabase getVolunteerUserById:', err);
+      return null;
+    }
+  },
+
   /* ---- Slots (lecture seule pour affichage) ---- */
 
   /**

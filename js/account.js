@@ -7,7 +7,18 @@ const accountLoggedOut = document.getElementById('account-logged-out');
 const accountSubmitButton = accountForm ? accountForm.querySelector('button[type="submit"]') : null;
 
 document.addEventListener('DOMContentLoaded', async () => {
-  const user = DataService.getCurrentVolunteerUser();
+  const sessionUser = DataService.getCurrentVolunteerUser();
+
+  // Attempt to load the freshest user record from the DB
+  let user = sessionUser;
+  if (sessionUser && sessionUser.id && DataService.getVolunteerUserById) {
+    try {
+      const remote = await DataService.getVolunteerUserById(sessionUser.id);
+      if (remote) user = remote;
+    } catch (e) {
+      console.warn('Impossible de récupérer l\'utilisateur depuis la BD:', e);
+    }
+  }
 
   if (!user) {
     if (accountLoggedOut) accountLoggedOut.classList.remove('hidden');
@@ -17,10 +28,23 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   if (accountForm) {
     accountForm.classList.remove('hidden');
-    accountForm.elements['firstName'].value = user.firstName || '';
-    accountForm.elements['lastName'].value = user.lastName || '';
-    accountForm.elements['email'].value = user.email || '';
-    accountForm.elements['phone'].value = user.phone || '';
+    // Fill values from DB/session; set placeholder when empty
+    const fn = user.firstName || '';
+    const ln = user.lastName || '';
+    const em = user.email || '';
+    const ph = user.phone || '';
+
+    accountForm.elements['firstName'].value = fn;
+    accountForm.elements['firstName'].placeholder = fn ? '' : 'Entrez la valeur';
+
+    accountForm.elements['lastName'].value = ln;
+    accountForm.elements['lastName'].placeholder = ln ? '' : 'Entrez la valeur';
+
+    accountForm.elements['email'].value = em;
+    accountForm.elements['email'].placeholder = em ? '' : 'Entrez la valeur';
+
+    accountForm.elements['phone'].value = ph;
+    accountForm.elements['phone'].placeholder = ph ? '' : 'Entrez la valeur';
     accountForm.addEventListener('submit', handleSaveAccount);
   }
 });
