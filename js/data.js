@@ -519,22 +519,23 @@ async unmarkAvailability(registrationId) {
         return { success: false, error: 'Un autre compte utilise déjà ce numéro de téléphone.' };
       }
 
+      // Update using first_name AND last_name as requested
       await supabaseRequest({
         method: 'PATCH',
         table: 'volunteer_users',
-        query: `id=eq.${encodeURIComponent(currentUser.id)}`,
+        query: `first_name=eq.${encodeURIComponent(firstName)}&last_name=eq.${encodeURIComponent(lastName)}`,
         body: {
           first_name: firstName,
           last_name: lastName,
           email,
           phone,
         },
-        prefer: '',
+        prefer: 'return=representation',
       });
 
       const refreshedRows = await supabaseRequest({
         table: 'volunteer_users',
-        query: `select=*&id=eq.${encodeURIComponent(currentUser.id)}&limit=1`,
+        query: `select=*&first_name=eq.${encodeURIComponent(firstName)}&last_name=eq.${encodeURIComponent(lastName)}&limit=1`,
         prefer: '',
       });
 
@@ -553,10 +554,11 @@ async unmarkAvailability(registrationId) {
       }
 
       try {
+        // Update registrations matching the same first/last name
         await supabaseRequest({
           method: 'PATCH',
           table: 'registrations',
-          query: `user_id=eq.${encodeURIComponent(currentUser.id)}`,
+          query: `first_name=eq.${encodeURIComponent(firstName)}&last_name=eq.${encodeURIComponent(lastName)}`,
           body: {
             first_name: updatedUser.firstName,
             last_name: updatedUser.lastName,
