@@ -103,6 +103,17 @@ function clearVolunteerSessionUserFromStorage() {
   localStorage.removeItem(CONFIG.volunteerSessionUserKey);
 }
 
+function normalizeVolunteerUserPayload(user) {
+  return {
+    id: user.id,
+    firstName: user.firstName || '',
+    lastName: user.lastName || '',
+    email: user.email || user.contact || '',
+    phone: user.phone || '',
+    createdAt: user.createdAt || user.created_at || null,
+  };
+}
+
 /* ================================================================
    HELPERS SUPABASE (REST)
    ================================================================ */
@@ -464,6 +475,88 @@ async unmarkAvailability(registrationId) {
     return { success: false, error: 'Impossible de supprimer cette disponibilité.' };
   }
 },
+
+  /**
+   * Met à jour les informations du compte bénévole connecté.
+   * @param {Object} payload
+   * @returns {Promise<{success: boolean, error?: string, user?: Object}>}
+   */
+  async updateVolunteerUser(payload) {
+    const currentUser = this.getCurrentVolunteerUser();
+    if (!currentUser) {
+      return { success: false, error: 'Connexion requise.' };
+    }
+
+    if (!isSupabaseEnabled()) {
+      return { success: false, error: 'Connexion Supabase non configurée.' };
+    }
+
+    const firstName = String(payload.firstName || '').trim();
+    const lastName = String(payload.lastName || '').trim();
+    const email = String(payload.email || '').trim().toLowerCase();
+    const phone = String(payload.phone || '').trim();
+
+    if (!firstName || !lastName || !email || !phone) {
+      return { success: false, error: 'Informations de compte invalides.' };
+    }
+
+    try {
+      const emailConflict = await supabaseRequest({
+        table: 'volunteer_users',
+        query: `select=id&email=eq.${encodeURIComponent(email)}&id=neq.${encodeURIComponent(currentUser.id)}&limit=1`,
+        prefer: '',
+      });
+      if (Array.isArray(emailConflict) && emailConflict.length > 0) {
+        return { success: false, error: 'Un autre compte utilise déjà cet email.' };
+      }
+
+      const phoneConflict = await supabaseRequest({
+        table: 'volunteer_users',
+        query: `select=id&phone=eq.${encodeURIComponent(phone)}&id=neq.${encodeURIComponent(currentUser.id)}&limit=1`,
+        prefer: '',
+      });
+      if (Array.isArray(phoneConflict) && phoneConflict.length > 0) {
+        return { success: false, error: 'Un autre compte utilise déjà ce numéro de téléphone.' };
+      }
+
+      const updatedRows = await supabaseRequest({
+        method: 'PATCH',
+        table: 'volunteer_users',
+        query: `id=eq.${encodeURIComponent(currentUser.id)}&select=*`,
+        body: {
+          first_name: firstName,
+          last_name: lastName,
+          email,
+          phone,
+        },
+      });
+
+      const updatedUser = Array.isArray(updatedRows) && updatedRows.length ? mapUserRow(updatedRows[0]) : null;
+      if (!updatedUser) {
+        return { success: false, error: 'Impossible de mettre à jour le compte.' };
+      }
+
+      await supabaseRequest({
+        method: 'PATCH',
+        table: 'registrations',
+        query: `user_id=eq.${encodeURIComponent(currentUser.id)}`,
+        body: {
+          first_name: updatedUser.firstName,
+          last_name: updatedUser.lastName,
+          email: updatedUser.email,
+          phone: updatedUser.phone,
+        },
+        prefer: '',
+      });
+
+      saveVolunteerSessionToStorage(updatedUser.id);
+      saveVolunteerSessionUserToStorage(updatedUser);
+      return { success: true, user: updatedUser };
+    } catch (err) {
+      console.error('Erreur Supabase updateVolunteerUser:', err);
+      return { success: false, error: 'Impossible de mettre à jour le compte.' };
+    }
+  },
 
   /* ---- Missions ---- */
 

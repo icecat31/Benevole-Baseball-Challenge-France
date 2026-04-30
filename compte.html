@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Gérez vos informations bénévoles pour le Challenge de France de Baseball 2026 à Toulouse." />
+  <title>Mon compte — Bénévoles Challenge de France Baseball 2026</title>
+  <link rel="stylesheet" href="css/main.css?v=20260430-1" />
+</head>
+<body>
+
+  <header>
+    <nav class="navbar" aria-label="Navigation principale">
+      <a href="index.html" class="navbar-brand" aria-label="Accueil">
+        <span class="brand-emoji" aria-hidden="true"></span>
+        <span>
+          <span class="brand-text">Challenge de France 2026</span>
+          <span class="brand-sub">Bénévoles · Toulouse</span>
+        </span>
+      </a>
+      <div class="navbar-links" role="navigation">
+        <a href="index.html">Accueil</a>
+        <a href="benevole.html">S'inscrire</a>
+        <a href="compte.html" class="btn-cta active">Mon compte</a>
+      </div>
+    </nav>
+  </header>
+
+  <main class="form-page">
+    <div class="form-container">
+      <section class="form-card" aria-labelledby="account-title">
+        <div class="form-header">
+          <h2 id="account-title">Mon compte bénévole</h2>
+          <p>Modifiez vos informations ou complétez votre profil.</p>
+        </div>
+
+        <div id="account-alert" class="alert alert-info hidden" role="status" aria-live="polite">
+          <span class="alert-icon" aria-hidden="true">ℹ️</span>
+          <span class="alert-message">Information</span>
+        </div>
+
+        <div id="account-logged-out" class="empty-state hidden" style="padding:1rem 1.2rem;">
+          <p>Vous devez vous connecter pour accéder à votre compte.</p>
+          <a href="benevole.html" class="btn btn-primary" style="margin-top:0.75rem">Aller à la connexion</a>
+        </div>
+
+        <form id="account-form" class="auth-form hidden" autocomplete="on">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="account-firstName">Prénom</label>
+              <input id="account-firstName" name="firstName" type="text" required />
+            </div>
+            <div class="form-group">
+              <label for="account-lastName">Nom</label>
+              <input id="account-lastName" name="lastName" type="text" required />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="account-email">Email</label>
+            <input id="account-email" name="email" type="email" required />
+          </div>
+          <div class="form-group">
+            <label for="account-phone">Téléphone</label>
+            <input id="account-phone" name="phone" type="tel" required />
+          </div>
+          <button class="btn btn-primary btn-block" type="submit">Enregistrer les modifications</button>
+        </form>
+      </section>
+    </div>
+  </main>
+
+  <footer>
+    <p>Challenge de France Baseball 2026 · Toulouse &nbsp;|&nbsp;
+       <a href="index.html">Accueil</a>
+    </p>
+  </footer>
+
+  <script src="js/supabase-config.js?v=20260430-1"></script>
+  <script src="js/data.js?v=20260430-1"></script>
+  <script src="js/account.js?v=20260430-1"></script>
+
+</body>
+</html>

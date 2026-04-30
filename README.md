@@ -29,6 +29,7 @@ Les données sont partagées entre tous les utilisateurs grâce à Supabase. Cel
 ## Pages du site
 - `index.html` : page d’accueil et consultation des créneaux.
 - `benevole.html` : connexion, création de compte et réservation d’un créneau.
+- `compte.html` : gestion et modification des informations du bénévole.
 - `admin.html` : tableau de bord d’administration.
 ## Pour un développeur
 
@@ -42,6 +43,7 @@ Les données sont partagées entre tous les utilisateurs grâce à Supabase. Cel
 - `js/data.js` : couche d’accès aux données.
 - `js/slots.js` : affichage des créneaux sur la page d’accueil.
 - `js/form.js` : connexion, inscription et réservation côté bénévole.
+- `js/account.js` : consultation et modification du compte bénévole.
 - `js/admin.js` : tableau de bord admin.
 - `js/supabase-config.js` : configuration publique Supabase chargée dans le navigateur.
 - `supabase_slots_seed.sql` : script SQL pour recréer et remplir la base.
