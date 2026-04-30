@@ -83,7 +83,13 @@ function loadVolunteerSessionUserFromStorage() {
   const raw = localStorage.getItem(CONFIG.volunteerSessionUserKey);
   if (!raw) return null;
   try {
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    if (!parsed || !parsed.id) return null;
+    return {
+      ...parsed,
+      email: parsed.email || parsed.contact || '',
+      phone: parsed.phone || '',
+    };
   } catch (e) {
     console.error('Erreur lecture session utilisateur:', e);
     return null;
@@ -156,7 +162,8 @@ function mapRegistrationRow(row) {
     mission: row.mission,
     startTime: row.start_time,
     endTime: row.end_time,
-    contact: row.contact,
+    email: row.email || row.contact || '',
+    phone: row.phone || '',
     comment: row.comment || '',
     submittedAt: row.submitted_at,
   };
@@ -180,8 +187,8 @@ function mapUserRow(row) {
     id: row.id,
     firstName: row.first_name,
     lastName: row.last_name,
-    contact: row.contact,
-    password: row.password,
+    email: row.email || row.contact || '',
+    phone: row.phone || '',
     createdAt: row.created_at,
   };
 }
@@ -268,7 +275,8 @@ async getRegistrations() {
         userId: row.user_id,
         firstName: row.first_name,
         lastName: row.last_name,
-        contact: row.contact,
+        email: row.email || row.contact || '',
+        phone: row.phone || '',
         slotId: row.slot_id,
         comment: row.comment || '',
         submittedAt: row.submitted_at,
@@ -286,7 +294,7 @@ async getRegistrations() {
 
 /**
  * Marquer une disponibilité (nouvelle inscription).
- * Structure: {id, userId, date, mission, startTime, endTime, contact, comment, submittedAt}
+ * Structure: {id, userId, date, mission, startTime, endTime, email, phone, comment, submittedAt}
  *
  * @param {Object} input
  * @param {string} input.date      - Date (YYYY-MM-DD)
@@ -399,7 +407,8 @@ async markAvailability(input) {
         user_id: user.id,
         first_name: user.firstName,
         last_name: user.lastName,
-        contact: user.contact,
+        email: user.email || user.contact || '',
+        phone: user.phone || '',
         slot_id: slotId,
         comment,
       },
@@ -478,12 +487,12 @@ async unmarkAvailability(registrationId) {
   /* ---- Auth benevole (MVP cote client) ---- */
 
   async registerVolunteerUser(payload) {
-    const contact = String(payload.contact || '').trim().toLowerCase();
-    const password = String(payload.password || '').trim();
     const firstName = String(payload.firstName || '').trim();
     const lastName = String(payload.lastName || '').trim();
+    const email = String(payload.email || '').trim().toLowerCase();
+    const phone = String(payload.phone || '').trim();
 
-    if (!firstName || !lastName || !contact || password.length < 6) {
+    if (!firstName || !lastName || !email || !phone) {
       return { success: false, error: 'Informations de compte invalides.' };
     }
 
@@ -494,11 +503,20 @@ async unmarkAvailability(registrationId) {
     try {
       const existing = await supabaseRequest({
         table: 'volunteer_users',
-        query: `select=id&contact=eq.${encodeURIComponent(contact)}&limit=1`,
+        query: `select=id&email=eq.${encodeURIComponent(email)}&limit=1`,
         prefer: '',
       });
       if (Array.isArray(existing) && existing.length > 0) {
-        return { success: false, error: 'Un compte existe deja avec ce contact.' };
+        return { success: false, error: 'Un compte existe deja avec cet email.' };
+      }
+
+      const existingPhone = await supabaseRequest({
+        table: 'volunteer_users',
+        query: `select=id&phone=eq.${encodeURIComponent(phone)}&limit=1`,
+        prefer: '',
+      });
+      if (Array.isArray(existingPhone) && existingPhone.length > 0) {
+        return { success: false, error: 'Un compte existe deja avec ce numéro de téléphone.' };
       }
 
       const rows = await supabaseRequest({
@@ -507,8 +525,8 @@ async unmarkAvailability(registrationId) {
         body: {
           first_name: firstName,
           last_name: lastName,
-          contact,
-          password,
+          email,
+          phone,
         },
       });
 
@@ -526,12 +544,16 @@ async unmarkAvailability(registrationId) {
     }
   },
 
-  async loginVolunteerUser(contact, password) {
-    const normalizedContact = String(contact || '').trim().toLowerCase();
-    const normalizedPassword = String(password || '');
+  async loginVolunteerUser(firstName, lastName) {
+    const normalizedFirstName = String(firstName || '').trim();
+    const normalizedLastName = String(lastName || '').trim();
 
     if (!isSupabaseEnabled()) {
       return { success: false, error: 'Connexion Supabase non configurée.' };
+    }
+
+    if (!normalizedFirstName || !normalizedLastName) {
+      return { success: false, error: 'Prénom et nom requis.' };
     }
 
     try {
@@ -539,16 +561,20 @@ async unmarkAvailability(registrationId) {
         table: 'volunteer_users',
         query: [
           'select=*',
-          `contact=eq.${encodeURIComponent(normalizedContact)}`,
-          `password=eq.${encodeURIComponent(normalizedPassword)}`,
-          'limit=1',
+          `first_name=ilike.${encodeURIComponent(normalizedFirstName)}`,
+          `last_name=ilike.${encodeURIComponent(normalizedLastName)}`,
+          'limit=2',
         ].join('&'),
         prefer: '',
       });
 
+      if (Array.isArray(rows) && rows.length > 1) {
+        return { success: false, error: 'Plusieurs comptes portent ce nom. Contactez l’organisation.' };
+      }
+
       const user = Array.isArray(rows) && rows.length ? mapUserRow(rows[0]) : null;
       if (!user) {
-        return { success: false, error: 'Contact ou mot de passe incorrect.' };
+        return { success: false, error: 'Compte introuvable.' };
       }
 
       saveVolunteerSessionToStorage(user.id);
@@ -556,7 +582,7 @@ async unmarkAvailability(registrationId) {
       return { success: true, user };
     } catch (err) {
       console.error('Erreur Supabase loginVolunteerUser:', err);
-      return { success: false, error: 'Contact ou mot de passe incorrect.' };
+      return { success: false, error: 'Compte introuvable.' };
     }
   },
 

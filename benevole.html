@@ -59,15 +59,14 @@
           </div>
 
           <form id="login-form" class="auth-form" data-panel="login" autocomplete="on">
-            <div class="form-group">
-              <label for="login-contact">Email ou téléphone</label>
-              <input id="login-contact" name="contact" type="text" placeholder="Ex : marie@email.fr" required />
-            </div>
-            <div class="form-group">
-              <label for="login-password">Mot de passe</label>
-              <div class="password-field">
-                <input id="login-password" name="password" type="password" placeholder="Votre mot de passe" required />
-                <button class="password-toggle" type="button" data-password-toggle="login-password" aria-label="Afficher le mot de passe" aria-pressed="false">👁️</button>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="login-firstName">Prénom</label>
+                <input id="login-firstName" name="firstName" type="text" placeholder="Ex : Marie" required />
+              </div>
+              <div class="form-group">
+                <label for="login-lastName">Nom</label>
+                <input id="login-lastName" name="lastName" type="text" placeholder="Ex : Dupont" required />
               </div>
             </div>
             <button class="btn btn-primary btn-block" type="submit">Se connecter</button>
@@ -85,15 +84,12 @@
               </div>
             </div>
             <div class="form-group">
-              <label for="register-contact">Email ou téléphone</label>
-              <input id="register-contact" name="contact" type="text" placeholder="Ex : marie@email.fr" required />
+              <label for="register-email">Email</label>
+              <input id="register-email" name="email" type="email" placeholder="Ex : marie@email.fr" required />
             </div>
             <div class="form-group">
-              <label for="register-password">Mot de passe</label>
-              <div class="password-field">
-                <input id="register-password" name="password" type="password" minlength="6" placeholder="6 caractères minimum" required />
-                <button class="password-toggle" type="button" data-password-toggle="register-password" aria-label="Afficher le mot de passe" aria-pressed="false">👁️</button>
-              </div>
+              <label for="register-phone">Téléphone</label>
+              <input id="register-phone" name="phone" type="tel" placeholder="Ex : 06 12 34 56 78" required />
             </div>
             <button class="btn btn-primary btn-block" type="submit">Créer mon compte</button>
           </form>
@@ -160,10 +156,9 @@
   </footer>
 
   <!-- Scripts -->
-  <script src="js/supabase-config.js?v=20260427-4"></script>
-  <script src="js/password-toggle.js?v=20260427-4"></script>
-  <script src="js/data.js?v=20260427-4"></script>
-  <script src="js/form.js?v=20260427-4"></script>
+  <script src="js/supabase-config.js?v=20260430-1"></script>
+  <script src="js/data.js?v=20260430-1"></script>
+  <script src="js/form.js?v=20260430-1"></script>
 
 </body>
 </html>

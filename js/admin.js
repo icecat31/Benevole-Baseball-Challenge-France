@@ -167,11 +167,13 @@ function renderRegistrationRows(registrations, missionFilter, dateFilter) {
   tbody.innerHTML = filtered.map(reg => {
     const mission = DataService.getMissionById(reg.mission);
     const timeRange = `${formatDate(reg.date)} ${reg.startTime}–${reg.endTime}`;
+    const email = reg.email || '—';
+    const phone = reg.phone || '—';
 
     return `
       <tr>
         <td>${escapeHtml(reg.firstName)} ${escapeHtml(reg.lastName)}</td>
-        <td>${escapeHtml(reg.contact)}</td>
+        <td><div>${escapeHtml(email)}</div><div style="font-size:0.8rem;color:var(--color-text-muted)">${escapeHtml(phone)}</div></td>
         <td><span class="badge-mission">${mission ? escapeHtml(mission.icon) + ' ' + escapeHtml(mission.label) : escapeHtml(reg.mission)}</span></td>
         <td>${escapeHtml(timeRange)}</td>
         <td>${reg.comment ? escapeHtml(reg.comment) : '<span style="color:#aaa">—</span>'}</td>
@@ -236,7 +238,7 @@ function renderAvailabilityTab(slots, registrations) {
               ${volunteers.length > 0 ? volunteers.map(reg => `
                 <div class="volunteer-item">
                   👤 ${escapeHtml(reg.firstName)} ${escapeHtml(reg.lastName)}
-                  <span style="color:var(--color-text-muted);font-size:0.78rem;margin-left:auto">${escapeHtml(reg.contact)}</span>
+                  <span style="color:var(--color-text-muted);font-size:0.78rem;margin-left:auto">${escapeHtml(reg.email || '—')} ${reg.phone ? '· ' + escapeHtml(reg.phone) : ''}</span>
                 </div>
               `).join('') : '<div class="volunteer-item" style="color:var(--color-text-muted)">Aucun bénévole inscrit</div>'}
             </div>
@@ -321,14 +323,15 @@ function renderAccountsTab(users) {
   if (!tbody) return;
 
   if (!Array.isArray(users) || users.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="3" class="empty-state" style="padding:2rem;text-align:center;color:var(--color-text-muted)">Aucun compte créé pour le moment.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="4" class="empty-state" style="padding:2rem;text-align:center;color:var(--color-text-muted)">Aucun compte créé pour le moment.</td></tr>`;
     return;
   }
 
   tbody.innerHTML = users.map(user => `
     <tr>
       <td>${escapeHtml(user.firstName || '')} ${escapeHtml(user.lastName || '')}</td>
-      <td>${escapeHtml(user.contact || '—')}</td>
+      <td>${escapeHtml(user.email || '—')}</td>
+      <td>${escapeHtml(user.phone || '—')}</td>
       <td>${formatDatetime(user.createdAt)}</td>
     </tr>
   `).join('');
@@ -366,13 +369,14 @@ function setupExport(registrations) {
 
   exportBtn.addEventListener('click', () => {
     const rows = [
-      ['Prénom', 'Nom', 'Contact', 'Mission', 'Date', 'Horaire', 'Commentaire', 'Date soumise'],
+      ['Prénom', 'Nom', 'Email', 'Téléphone', 'Mission', 'Date', 'Horaire', 'Commentaire', 'Date soumise'],
       ...registrations.map(reg => {
         const mission = DataService.getMissionById(reg.mission);
         return [
           reg.firstName,
           reg.lastName,
-          reg.contact,
+          reg.email || '',
+          reg.phone || '',
           mission ? mission.label : reg.mission,
           formatDate(reg.date),
           `${reg.startTime}-${reg.endTime}`,

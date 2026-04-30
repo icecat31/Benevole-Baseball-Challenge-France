@@ -124,10 +124,10 @@ function showAuthAlert(message, isError = true) {
 async function handleLogin(e) {
   e.preventDefault();
 
-  const contact = document.getElementById('login-contact').value.trim();
-  const password = document.getElementById('login-password').value.trim();
+  const firstName = document.getElementById('login-firstName').value.trim();
+  const lastName = document.getElementById('login-lastName').value.trim();
 
-  const result = await DataService.loginVolunteerUser(contact, password);
+  const result = await DataService.loginVolunteerUser(firstName, lastName);
   if (!result.success) {
     showAuthAlert(result.error, true);
     return;
@@ -145,14 +145,14 @@ async function handleRegister(e) {
 
   const firstName = document.getElementById('register-firstName').value.trim();
   const lastName = document.getElementById('register-lastName').value.trim();
-  const contact = document.getElementById('register-contact').value.trim();
-  const password = document.getElementById('register-password').value.trim();
+  const email = document.getElementById('register-email').value.trim();
+  const phone = document.getElementById('register-phone').value.trim();
 
   const result = await DataService.registerVolunteerUser({
     firstName,
     lastName,
-    contact,
-    password,
+    email,
+    phone,
   });
 
   if (!result.success) {
