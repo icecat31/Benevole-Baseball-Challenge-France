@@ -519,41 +519,66 @@ async unmarkAvailability(registrationId) {
         return { success: false, error: 'Un autre compte utilise déjà ce numéro de téléphone.' };
       }
 
-      const updatedRows = await supabaseRequest({
+      await supabaseRequest({
         method: 'PATCH',
         table: 'volunteer_users',
-        query: `id=eq.${encodeURIComponent(currentUser.id)}&select=*`,
+        query: `id=eq.${encodeURIComponent(currentUser.id)}`,
         body: {
           first_name: firstName,
           last_name: lastName,
           email,
           phone,
         },
+        prefer: '',
       });
 
-      const updatedUser = Array.isArray(updatedRows) && updatedRows.length ? mapUserRow(updatedRows[0]) : null;
+      const refreshedRows = await supabaseRequest({
+        table: 'volunteer_users',
+        query: `select=*&id=eq.${encodeURIComponent(currentUser.id)}&limit=1`,
+        prefer: '',
+      });
+
+      const updatedUser = Array.isArray(refreshedRows) && refreshedRows.length
+        ? mapUserRow(refreshedRows[0])
+        : {
+            id: currentUser.id,
+            firstName,
+            lastName,
+            email,
+            phone,
+            createdAt: currentUser.createdAt || null,
+          };
       if (!updatedUser) {
         return { success: false, error: 'Impossible de mettre à jour le compte.' };
       }
 
-      await supabaseRequest({
-        method: 'PATCH',
-        table: 'registrations',
-        query: `user_id=eq.${encodeURIComponent(currentUser.id)}`,
-        body: {
-          first_name: updatedUser.firstName,
-          last_name: updatedUser.lastName,
-          email: updatedUser.email,
-          phone: updatedUser.phone,
-        },
-        prefer: '',
-      });
+      try {
+        await supabaseRequest({
+          method: 'PATCH',
+          table: 'registrations',
+          query: `user_id=eq.${encodeURIComponent(currentUser.id)}`,
+          body: {
+            first_name: updatedUser.firstName,
+            last_name: updatedUser.lastName,
+            email: updatedUser.email,
+            phone: updatedUser.phone,
+          },
+          prefer: '',
+        });
+      } catch (syncErr) {
+        // La mise à jour du compte principal a réussi: on journalise seulement l'échec de synchro historique.
+        console.warn('Synchronisation registrations ignorée:', syncErr);
+      }
 
       saveVolunteerSessionToStorage(updatedUser.id);
       saveVolunteerSessionUserToStorage(updatedUser);
       return { success: true, user: updatedUser };
     } catch (err) {
       console.error('Erreur Supabase updateVolunteerUser:', err);
+      const errorMessage = (err && err.message) ? String(err.message) : '';
+      if (errorMessage) {
+        return { success: false, error: errorMessage };
+      }
       return { success: false, error: 'Impossible de mettre à jour le compte.' };
     }
   },
