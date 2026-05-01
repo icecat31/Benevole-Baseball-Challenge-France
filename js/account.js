@@ -62,29 +62,15 @@ async function handleSaveAccount(e) {
   const email = accountForm.elements['email'].value.trim();
   const phone = accountForm.elements['phone'].value.trim();
 
-  const mailResult = await DataService.updateMail({
+  const result = await DataService.updateVolunteerUser({
     firstName,
     lastName,
-    value: email,
+    email,
+    phone,
   });
 
-  if (!mailResult.success) {
-    showAccountAlert(mailResult.error, true);
-    if (accountSubmitButton) {
-      accountSubmitButton.disabled = false;
-      accountSubmitButton.textContent = 'Enregistrer les modifications';
-    }
-    return;
-  }
-
-  const telResult = await DataService.updateTel({
-    firstName,
-    lastName,
-    value: phone,
-  });
-
-  if (!telResult.success) {
-    showAccountAlert(telResult.error, true);
+  if (!result.success) {
+    showAccountAlert(result.error, true);
     if (accountSubmitButton) {
       accountSubmitButton.disabled = false;
       accountSubmitButton.textContent = 'Enregistrer les modifications';
@@ -93,12 +79,11 @@ async function handleSaveAccount(e) {
   }
 
   const updatedUser = {
-    ...(mailResult.user || {}),
-    ...(telResult.user || {}),
+    ...(result.user || {}),
     firstName,
     lastName,
-    email: mailResult.user && mailResult.user.email ? mailResult.user.email : email,
-    phone: telResult.user && telResult.user.phone ? telResult.user.phone : phone,
+    email: result.user && result.user.email ? result.user.email : email,
+    phone: result.user && result.user.phone ? result.user.phone : phone,
   };
 
   accountForm.elements['firstName'].value = updatedUser.firstName || '';

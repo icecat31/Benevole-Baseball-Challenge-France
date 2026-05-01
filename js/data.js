@@ -564,23 +564,60 @@ async unmarkAvailability(registrationId) {
    * @returns {Promise<{success: boolean, error?: string, user?: Object}>}
    */
   async updateVolunteerUser(payload) {
+    const currentUser = this.getCurrentVolunteerUser();
+    if (!currentUser) {
+      return { success: false, error: 'Connexion requise.' };
+    }
+
+    if (!isSupabaseEnabled()) {
+      return { success: false, error: 'Connexion Supabase non configurée.' };
+    }
+
+    const firstName = String(currentUser.firstName || payload.firstName || '').trim();
+    const lastName = String(currentUser.lastName || payload.lastName || '').trim();
+    const email = String(payload.email || '').trim().toLowerCase();
+    const phone = String(payload.phone || '').trim();
+
+    if (!firstName || !lastName || !email || !phone) {
+      return { success: false, error: 'Informations de compte invalides.' };
+    }
+
     try {
-      const mailResult = await this.updateMail(payload);
-      if (!mailResult.success) {
-        return mailResult;
+      const emailConflict = await supabaseRequest({
+        table: 'volunteer_users',
+        query: `select=id&email=eq.${encodeURIComponent(email)}&id=neq.${encodeURIComponent(currentUser.id)}&limit=1`,
+        prefer: '',
+      });
+      if (Array.isArray(emailConflict) && emailConflict.length > 0) {
+        return { success: false, error: 'Un autre compte utilise déjà cet email.' };
       }
 
-      const telResult = await this.updateTel(payload);
-      if (!telResult.success) {
-        return telResult;
+      const phoneConflict = await supabaseRequest({
+        table: 'volunteer_users',
+        query: `select=id&phone=eq.${encodeURIComponent(phone)}&id=neq.${encodeURIComponent(currentUser.id)}&limit=1`,
+        prefer: '',
+      });
+      if (Array.isArray(phoneConflict) && phoneConflict.length > 0) {
+        return { success: false, error: 'Un autre compte utilise déjà ce numéro de téléphone.' };
       }
 
-      const currentUser = this.getCurrentVolunteerUser();
-      const updatedUser = {
-        ...currentUser,
-        email: mailResult.user ? mailResult.user.email : currentUser.email,
-        phone: telResult.user ? telResult.user.phone : currentUser.phone,
-      };
+      const refreshedRows = await supabaseRpcRequest('update_volunteer_contact', {
+        p_first_name: firstName,
+        p_last_name: lastName,
+        p_email: email,
+        p_phone: phone,
+      });
+
+      const updatedUser = Array.isArray(refreshedRows) && refreshedRows.length
+        ? mapUserRow(refreshedRows[0])
+        : {
+            id: currentUser.id,
+            firstName,
+            lastName,
+            email,
+            phone,
+            createdAt: currentUser.createdAt || null,
+          };
 
       saveVolunteerSessionToStorage(updatedUser.id);
       saveVolunteerSessionUserToStorage(updatedUser);
@@ -588,10 +625,7 @@ async unmarkAvailability(registrationId) {
     } catch (err) {
       console.error('Erreur Supabase updateVolunteerUser:', err);
       const errorMessage = (err && err.message) ? String(err.message) : '';
-      if (errorMessage) {
-        return { success: false, error: errorMessage };
-      }
-      return { success: false, error: 'Impossible de mettre à jour le compte.' };
+      return { success: false, error: errorMessage || 'Impossible de mettre à jour le compte.' };
     }
   },
 
