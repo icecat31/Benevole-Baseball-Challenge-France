@@ -57,15 +57,19 @@ async function handleSaveAccount(e) {
     accountSubmitButton.textContent = 'Enregistrement...';
   }
 
-  const result = await DataService.updateVolunteerUser({
-    firstName: accountForm.elements['firstName'].value.trim(),
-    lastName: accountForm.elements['lastName'].value.trim(),
-    email: accountForm.elements['email'].value.trim(),
-    phone: accountForm.elements['phone'].value.trim(),
+  const firstName = accountForm.elements['firstName'].value.trim();
+  const lastName = accountForm.elements['lastName'].value.trim();
+  const email = accountForm.elements['email'].value.trim();
+  const phone = accountForm.elements['phone'].value.trim();
+
+  const mailResult = await DataService.updateMail({
+    firstName,
+    lastName,
+    value: email,
   });
 
-  if (!result.success) {
-    showAccountAlert(result.error, true);
+  if (!mailResult.success) {
+    showAccountAlert(mailResult.error, true);
     if (accountSubmitButton) {
       accountSubmitButton.disabled = false;
       accountSubmitButton.textContent = 'Enregistrer les modifications';
@@ -73,12 +77,34 @@ async function handleSaveAccount(e) {
     return;
   }
 
-  if (result.user) {
-    accountForm.elements['firstName'].value = result.user.firstName || '';
-    accountForm.elements['lastName'].value = result.user.lastName || '';
-    accountForm.elements['email'].value = result.user.email || '';
-    accountForm.elements['phone'].value = result.user.phone || '';
+  const telResult = await DataService.updateTel({
+    firstName,
+    lastName,
+    value: phone,
+  });
+
+  if (!telResult.success) {
+    showAccountAlert(telResult.error, true);
+    if (accountSubmitButton) {
+      accountSubmitButton.disabled = false;
+      accountSubmitButton.textContent = 'Enregistrer les modifications';
+    }
+    return;
   }
+
+  const updatedUser = {
+    ...(mailResult.user || {}),
+    ...(telResult.user || {}),
+    firstName,
+    lastName,
+    email: mailResult.user && mailResult.user.email ? mailResult.user.email : email,
+    phone: telResult.user && telResult.user.phone ? telResult.user.phone : phone,
+  };
+
+  accountForm.elements['firstName'].value = updatedUser.firstName || '';
+  accountForm.elements['lastName'].value = updatedUser.lastName || '';
+  accountForm.elements['email'].value = updatedUser.email || '';
+  accountForm.elements['phone'].value = updatedUser.phone || '';
 
   showAccountAlert('Vos informations ont été mises à jour.', false);
 

@@ -103,17 +103,6 @@ function clearVolunteerSessionUserFromStorage() {
   localStorage.removeItem(CONFIG.volunteerSessionUserKey);
 }
 
-function normalizeVolunteerUserPayload(user) {
-  return {
-    id: user.id,
-    firstName: user.firstName || '',
-    lastName: user.lastName || '',
-    email: user.email || user.contact || '',
-    phone: user.phone || '',
-    createdAt: user.createdAt || user.created_at || null,
-  };
-}
-
 /* ================================================================
    HELPERS SUPABASE (REST)
    ================================================================ */
@@ -161,23 +150,6 @@ async function supabaseRequest({ method = 'GET', table, query = '', body, prefer
   }
 
   return payload;
-}
-
-function mapRegistrationRow(row) {
-  return {
-    id: row.id,
-    userId: row.user_id,
-    firstName: row.first_name,
-    lastName: row.last_name,
-    date: row.date,
-    mission: row.mission,
-    startTime: row.start_time,
-    endTime: row.end_time,
-    email: row.email || row.contact || '',
-    phone: row.phone || '',
-    comment: row.comment || '',
-    submittedAt: row.submitted_at,
-  };
 }
 
 function mapSlotRow(row) {
@@ -476,12 +448,15 @@ async unmarkAvailability(registrationId) {
   }
 },
 
-  /**
-   * Met à jour les informations du compte bénévole connecté.
-   * @param {Object} payload
-   * @returns {Promise<{success: boolean, error?: string, user?: Object}>}
-   */
-  async updateVolunteerUser(payload) {
+  async updateMail(payload) {
+    return this.updateVolunteerField('email', payload);
+  },
+
+  async updateTel(payload) {
+    return this.updateVolunteerField('phone', payload);
+  },
+
+  async updateVolunteerField(fieldName, payload) {
     const currentUser = this.getCurrentVolunteerUser();
     if (!currentUser) {
       return { success: false, error: 'Connexion requise.' };
@@ -491,44 +466,43 @@ async unmarkAvailability(registrationId) {
       return { success: false, error: 'Connexion Supabase non configurée.' };
     }
 
-    const firstName = String(payload.firstName || '').trim();
-    const lastName = String(payload.lastName || '').trim();
-    const email = String(payload.email || '').trim().toLowerCase();
-    const phone = String(payload.phone || '').trim();
+    const firstName = String(payload.firstName || currentUser.firstName || '').trim();
+    const lastName = String(payload.lastName || currentUser.lastName || '').trim();
+    const value = String(payload.value || '').trim();
 
-    if (!firstName || !lastName || !email || !phone) {
+    if (!firstName || !lastName || !value) {
       return { success: false, error: 'Informations de compte invalides.' };
     }
 
-    try {
+    if (fieldName === 'email') {
       const emailConflict = await supabaseRequest({
         table: 'volunteer_users',
-        query: `select=id&email=eq.${encodeURIComponent(email)}&id=neq.${encodeURIComponent(currentUser.id)}&limit=1`,
+        query: `select=id&email=eq.${encodeURIComponent(value.toLowerCase())}&id=neq.${encodeURIComponent(currentUser.id)}&limit=1`,
         prefer: '',
       });
       if (Array.isArray(emailConflict) && emailConflict.length > 0) {
         return { success: false, error: 'Un autre compte utilise déjà cet email.' };
       }
+    }
 
+    if (fieldName === 'phone') {
       const phoneConflict = await supabaseRequest({
         table: 'volunteer_users',
-        query: `select=id&phone=eq.${encodeURIComponent(phone)}&id=neq.${encodeURIComponent(currentUser.id)}&limit=1`,
+        query: `select=id&phone=eq.${encodeURIComponent(value)}&id=neq.${encodeURIComponent(currentUser.id)}&limit=1`,
         prefer: '',
       });
       if (Array.isArray(phoneConflict) && phoneConflict.length > 0) {
         return { success: false, error: 'Un autre compte utilise déjà ce numéro de téléphone.' };
       }
+    }
 
-      // Update using first_name AND last_name as requested
+    try {
       await supabaseRequest({
         method: 'PATCH',
         table: 'volunteer_users',
         query: `first_name=eq.${encodeURIComponent(firstName)}&last_name=eq.${encodeURIComponent(lastName)}`,
         body: {
-          first_name: firstName,
-          last_name: lastName,
-          email,
-          phone,
+          [fieldName]: fieldName === 'email' ? value.toLowerCase() : value,
         },
         prefer: 'return=representation',
       });
@@ -545,32 +519,44 @@ async unmarkAvailability(registrationId) {
             id: currentUser.id,
             firstName,
             lastName,
-            email,
-            phone,
+            email: fieldName === 'email' ? value.toLowerCase() : (currentUser.email || ''),
+            phone: fieldName === 'phone' ? value : (currentUser.phone || ''),
             createdAt: currentUser.createdAt || null,
           };
-      if (!updatedUser) {
-        return { success: false, error: 'Impossible de mettre à jour le compte.' };
+
+      saveVolunteerSessionToStorage(updatedUser.id);
+      saveVolunteerSessionUserToStorage(updatedUser);
+      return { success: true, user: updatedUser };
+    } catch (err) {
+      console.error(`Erreur Supabase update${fieldName === 'email' ? 'Mail' : 'Tel'}:`, err);
+      const errorMessage = (err && err.message) ? String(err.message) : '';
+      return { success: false, error: errorMessage || 'Impossible de mettre à jour le compte.' };
+    }
+  },
+
+  /**
+   * Met à jour les informations du compte bénévole connecté.
+   * @param {Object} payload
+   * @returns {Promise<{success: boolean, error?: string, user?: Object}>}
+   */
+  async updateVolunteerUser(payload) {
+    try {
+      const mailResult = await this.updateMail(payload);
+      if (!mailResult.success) {
+        return mailResult;
       }
 
-      try {
-        // Update registrations matching the same first/last name
-        await supabaseRequest({
-          method: 'PATCH',
-          table: 'registrations',
-          query: `first_name=eq.${encodeURIComponent(firstName)}&last_name=eq.${encodeURIComponent(lastName)}`,
-          body: {
-            first_name: updatedUser.firstName,
-            last_name: updatedUser.lastName,
-            email: updatedUser.email,
-            phone: updatedUser.phone,
-          },
-          prefer: '',
-        });
-      } catch (syncErr) {
-        // La mise à jour du compte principal a réussi: on journalise seulement l'échec de synchro historique.
-        console.warn('Synchronisation registrations ignorée:', syncErr);
+      const telResult = await this.updateTel(payload);
+      if (!telResult.success) {
+        return telResult;
       }
+
+      const currentUser = this.getCurrentVolunteerUser();
+      const updatedUser = {
+        ...currentUser,
+        email: mailResult.user ? mailResult.user.email : currentUser.email,
+        phone: telResult.user ? telResult.user.phone : currentUser.phone,
+      };
 
       saveVolunteerSessionToStorage(updatedUser.id);
       saveVolunteerSessionUserToStorage(updatedUser);
