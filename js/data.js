@@ -466,8 +466,8 @@ async unmarkAvailability(registrationId) {
       return { success: false, error: 'Connexion Supabase non configurée.' };
     }
 
-    const firstName = String(payload.firstName || currentUser.firstName || '').trim();
-    const lastName = String(payload.lastName || currentUser.lastName || '').trim();
+    const firstName = String(currentUser.firstName || payload.firstName || '').trim();
+    const lastName = String(currentUser.lastName || payload.lastName || '').trim();
     const value = String(payload.value || '').trim();
 
     if (!firstName || !lastName || !value) {
