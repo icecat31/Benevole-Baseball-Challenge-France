@@ -473,6 +473,7 @@ async unmarkAvailability(registrationId) {
     }
 
     try {
+      // Vérifier les conflits d'email et phone
       const emailConflict = await supabaseRequest({
         table: 'volunteer_users',
         query: `select=id&email=eq.${encodeURIComponent(email)}&id=neq.${encodeURIComponent(currentUser.id)}&limit=1`,
@@ -491,17 +492,28 @@ async unmarkAvailability(registrationId) {
         return { success: false, error: 'Un autre compte utilise déjà ce numéro de téléphone.' };
       }
 
-      await supabaseRequest({
-        method: 'PATCH',
-        table: 'volunteer_users',
-        query: `first_name=eq.${encodeURIComponent(firstName)}&last_name=eq.${encodeURIComponent(lastName)}`,
-        body: {
-          email,
-          phone,
+      // Appeler la RPC qui exécute les deux UPDATE SQL
+      const response = await fetch(buildSupabaseRestUrl('rpc/update_volunteer_contact'), {
+        method: 'POST',
+        headers: {
+          apikey: CONFIG.supabase.anonKey,
+          Authorization: `Bearer ${CONFIG.supabase.anonKey}`,
+          'Content-Type': 'application/json',
         },
-        prefer: 'return=representation',
+        body: JSON.stringify({
+          p_first_name: firstName,
+          p_last_name: lastName,
+          p_email: email,
+          p_phone: phone,
+        }),
       });
 
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text || 'Erreur lors de la mise à jour.');
+      }
+
+      // Refetcher l'utilisateur mis à jour
       const refreshedRows = await supabaseRequest({
         table: 'volunteer_users',
         query: `select=*&first_name=eq.${encodeURIComponent(firstName)}&last_name=eq.${encodeURIComponent(lastName)}&limit=1`,
