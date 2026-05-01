@@ -13,3 +13,4 @@ Thumbs.db
 
 # Other
 supabase_slots_seed.sql
+supabase_update_account_rpc.sql

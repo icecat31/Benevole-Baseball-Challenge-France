@@ -152,6 +152,39 @@ async function supabaseRequest({ method = 'GET', table, query = '', body, prefer
   return payload;
 }
 
+async function supabaseRpcRequest(functionName, body) {
+  const response = await fetch(buildSupabaseRestUrl(`rpc/${functionName}`), {
+    method: 'POST',
+    headers: {
+      apikey: CONFIG.supabase.anonKey,
+      Authorization: `Bearer ${CONFIG.supabase.anonKey}`,
+      'Content-Type': 'application/json',
+      Prefer: 'return=representation',
+    },
+    body: JSON.stringify(body || {}),
+  });
+
+  const text = await response.text();
+  let payload = null;
+  if (text) {
+    try {
+      payload = JSON.parse(text);
+    } catch (parseErr) {
+      const err = new Error(text);
+      err.details = { parseError: parseErr.message };
+      throw err;
+    }
+  }
+
+  if (!response.ok) {
+    const err = new Error(payload && payload.message ? payload.message : 'Erreur Supabase');
+    err.details = payload;
+    throw err;
+  }
+
+  return payload;
+}
+
 function mapSlotRow(row) {
   return {
     id: row.id,
@@ -497,20 +530,11 @@ async unmarkAvailability(registrationId) {
     }
 
     try {
-      await supabaseRequest({
-        method: 'PATCH',
-        table: 'volunteer_users',
-        query: `first_name=eq.${encodeURIComponent(firstName)}&last_name=eq.${encodeURIComponent(lastName)}`,
-        body: {
-          [fieldName]: fieldName === 'email' ? value.toLowerCase() : value,
-        },
-        prefer: 'return=representation',
-      });
-
-      const refreshedRows = await supabaseRequest({
-        table: 'volunteer_users',
-        query: `select=*&first_name=eq.${encodeURIComponent(firstName)}&last_name=eq.${encodeURIComponent(lastName)}&limit=1`,
-        prefer: '',
+      const rpcName = fieldName === 'email' ? 'update_volunteer_email' : 'update_volunteer_phone';
+      const refreshedRows = await supabaseRpcRequest(rpcName, {
+        p_first_name: firstName,
+        p_last_name: lastName,
+        [fieldName === 'email' ? 'p_email' : 'p_phone']: fieldName === 'email' ? value.toLowerCase() : value,
       });
 
       const updatedUser = Array.isArray(refreshedRows) && refreshedRows.length
