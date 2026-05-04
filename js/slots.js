@@ -75,47 +75,85 @@ function renderSlots(slots) {
     return;
   }
 
-  slotsContainer.innerHTML = filteredSlots.map(slot => {
-    const mission = DataService.getMissionById(slot.mission);
-    const badge = slot.isFull ? 'Complet' : `${slot.remainingPlaces} place(s) restante(s)`;
-    const isMine = !!(currentUser && slot.isSelectedByCurrentUser);
-    const actionLabel = slot.isFull ? 'Créneau complet' : 'S\'ajouter';
-    const actionClass = slot.isFull ? 'btn btn-sm' : 'btn btn-primary btn-sm';
-    const href = `benevole.html?slot=${encodeURIComponent(slot.id)}`;
-    const slotRegistrations = allRegistrations.filter(reg => reg.slotId === slot.id);
-    const volunteerNames = slotRegistrations.map(formatVolunteerShortName).filter(Boolean);
+  const missions = DataService.getMissions().filter(mission => selectedMission === 'all' || mission.id === selectedMission);
+  const dates = [...new Set(filteredSlots.map(slot => slot.date))].sort();
+  const registrationsBySlot = new Map();
+  allRegistrations.forEach(registration => {
+    if (!registration.slotId) return;
+    if (!registrationsBySlot.has(registration.slotId)) registrationsBySlot.set(registration.slotId, []);
+    registrationsBySlot.get(registration.slotId).push(registration);
+  });
 
+  const slotLookup = new Map();
+  filteredSlots.forEach(slot => {
+    if (!slotLookup.has(slot.date)) slotLookup.set(slot.date, new Map());
+    const missionMap = slotLookup.get(slot.date);
+    if (!missionMap.has(slot.mission)) missionMap.set(slot.mission, []);
+    missionMap.get(slot.mission).push(slot);
+  });
+
+  const missionLegend = missions.map(mission => {
+    const theme = getMissionTheme(mission.id);
     return `
-      <article class="card slot-card" style="margin-bottom:1rem;padding:1rem;">
-        <div style="display:flex;justify-content:space-between;gap:1rem;align-items:flex-start;flex-wrap:wrap">
-          <div>
-            <div style="font-size:0.92rem;color:var(--color-text-muted);margin-bottom:0.25rem">${escapeHtml(formatDate(slot.date))}</div>
-            <h3 style="margin:0 0 0.35rem 0;font-size:1.1rem">${escapeHtml(mission ? `${mission.icon} ${mission.label}` : slot.mission)}</h3>
-            <div style="font-weight:600">${escapeHtml(formatTime(slot.startTime))} - ${escapeHtml(formatTime(slot.endTime))}</div>
-          </div>
-          <span class="slot-badge ${slot.isFull ? 'full' : 'open'}">${escapeHtml(badge)}</span>
-        </div>
-        ${slot.description ? `<p style="margin:0.75rem 0 0;color:var(--color-text-muted)">${escapeHtml(slot.description)}</p>` : ''}
-        ${volunteerNames.length ? `<p style="margin:0.65rem 0 0;font-size:0.86rem;color:var(--color-text-muted)"><strong>Inscrits:</strong> ${escapeHtml(volunteerNames.join(', '))}</p>` : ''}
-        <div style="display:flex;justify-content:space-between;gap:0.75rem;flex-wrap:wrap;align-items:center;margin-top:1rem">
-          <span style="font-size:0.85rem;color:var(--color-text-muted)">${escapeHtml(String(slot.registeredCount || 0))} bénévole(s) inscrit(s)</span>
-          ${slot.isFull ? `<button class="${actionClass}" type="button" disabled>${escapeHtml(actionLabel)}</button>` : `<a class="${actionClass}" href="${href}">${escapeHtml(actionLabel)}</a>`}
-        </div>
-      </article>
+      <div class="calendar-legend-item" style="--mission-accent:${theme.accent};--mission-soft:${theme.soft};--mission-text:${theme.text};">
+        <span class="calendar-legend-swatch"></span>
+        <span>${escapeHtml(`${mission.icon} ${mission.label}`)}</span>
+    const SLOT_DATES = ['2026-05-14', '2026-05-15', '2026-05-16', '2026-05-17']; 
+    const CALENDAR_DAYS = [
+      { date: '2026-05-14', label: 'Jeudi 14', shortLabel: 'Jeu. 14' },
+      { date: '2026-05-15', label: 'Vendredi 15', shortLabel: 'Ven. 15' },
+      { date: '2026-05-16', label: 'Samedi 16', shortLabel: 'Sam. 16' },
+      { date: '2026-05-17', label: 'Dimanche 17', shortLabel: 'Dim. 17' },
+    ];
     `;
   }).join('');
-}
 
-function setupFilters() {
-  populateMissionFilter();
-  if (filterMission) filterMission.addEventListener('change', () => renderSlots(allSlots));
-  if (filterDate) filterDate.addEventListener('change', () => renderSlots(allSlots));
-}
+  const headerCells = dates.map(date => `
+    <div class="calendar-day-head">
+      <span class="calendar-day-weekday">${escapeHtml(formatCalendarWeekday(date))}</span>
+      <span class="calendar-day-date">${escapeHtml(formatDate(date))}</span>
+    </div>
+  `).join('');
 
-function populateMissionFilter() {
-  if (!filterMission) return;
+  const rows = missions.map(mission => {
+    const theme = getMissionTheme(mission.id);
+    const cells = dates.map(date => {
+      const daySlots = (slotLookup.get(date) && slotLookup.get(date).get(mission.id)) ? slotLookup.get(date).get(mission.id) : [];
+      const sortedSlots = daySlots.slice().sort((a, b) => String(a.startTime).localeCompare(String(b.startTime)));
 
-  const currentValue = filterMission.value || 'all';
+      if (!sortedSlots.length) {
+        return `
+          <div class="calendar-cell calendar-cell-empty">
+            <span class="calendar-cell-empty-label">Aucun créneau</span>
+          </div>
+        `;
+      }
+
+      return `
+        <div class="calendar-cell">
+          ${sortedSlots.map(slot => renderCalendarSlotBand(slot, mission, theme, registrationsBySlot, currentUser)).join('')}
+        </div>
+      `;
+    }).join('');
+
+    return `
+      <div class="calendar-row">
+        <div class="calendar-row-label" style="--mission-accent:${theme.accent};--mission-soft:${theme.soft};--mission-text:${theme.text};">
+          <span class="calendar-row-label-icon">${escapeHtml(mission.icon)}</span>
+          <span class="calendar-row-label-text">${escapeHtml(mission.label)}</span>
+        </div>
+        ${cells}
+      </div>
+    `;
+  }).join('');
+
+  slotsContainer.innerHTML = `
+    <div class="calendar-intro">
+      <div>
+        <h3 class="calendar-title">Planning visuel des ressources</h3>
+        <p class="calendar-subtitle">Chaque colonne correspond à un jour. Chaque bande représente un créneau. Les bandes hachurées indiquent qu’aucun bénévole n’est placé.</p>
+      </div>
+      slotsContainer.innerHTML = renderPlanningCalendar(filteredSlots, currentUser);
   filterMission.innerHTML = '<option value="all">Toutes les missions</option>';
 
   DataService.getMissions().forEach(mission => {
@@ -127,6 +165,101 @@ function populateMissionFilter() {
 
   filterMission.value = currentValue;
 }
+    function renderPlanningCalendar(slots, currentUser) {
+      const grouped = groupSlotsByMissionAndDate(slots);
+      const visibleDays = CALENDAR_DAYS.filter(day => slots.some(slot => slot.date === day.date));
+      const visibleMissions = DataService.getMissions().filter(mission =>
+        slots.some(slot => slot.mission === mission.id)
+      );
+
+      const dayHeader = visibleDays.map(day => `
+        <div class="calendar-day-header-cell">
+          <div class="calendar-day-kicker">${escapeHtml(day.shortLabel)}</div>
+          <div class="calendar-day-title">${escapeHtml(day.label)}</div>
+          <div class="calendar-day-sub">${escapeHtml(formatDate(day.date))}</div>
+        </div>
+      `).join('');
+
+      const rows = visibleMissions.map(mission => {
+        const rowCells = visibleDays.map(day => {
+          const daySlots = (grouped[mission.id] && grouped[mission.id][day.date]) ? grouped[mission.id][day.date] : [];
+
+          if (!daySlots.length) {
+            return `<div class="calendar-cell calendar-cell-empty"></div>`;
+          }
+
+          return `
+            <div class="calendar-cell">
+              ${daySlots.map(slot => renderCalendarBand(slot, mission, currentUser)).join('')}
+            </div>
+          `;
+        }).join('');
+
+        return `
+          <div class="calendar-row">
+            <div class="calendar-resource-cell">
+              <div class="calendar-resource-label">${escapeHtml(mission.icon)} ${escapeHtml(mission.label)}</div>
+              <div class="calendar-resource-meta">${escapeHtml(slots.filter(slot => slot.mission === mission.id).length)} créneau(x)</div>
+            </div>
+            ${rowCells}
+          </div>
+        `;
+      }).join('');
+
+      return `
+        <div class="calendar-legend">
+          <span class="calendar-legend-item"><span class="calendar-legend-swatch calendar-legend-filled"></span> Affecté</span>
+          <span class="calendar-legend-item"><span class="calendar-legend-swatch calendar-legend-empty"></span> Aucun bénévole</span>
+        </div>
+        <div class="calendar-scroll">
+          <div class="calendar-grid-wrap" style="grid-template-columns: 220px repeat(${visibleDays.length}, minmax(220px, 1fr));">
+            <div class="calendar-corner">Ressources</div>
+            ${dayHeader}
+            ${rows}
+          </div>
+        </div>
+      `;
+    }
+
+    function groupSlotsByMissionAndDate(slots) {
+      return slots.reduce((acc, slot) => {
+        if (!acc[slot.mission]) acc[slot.mission] = {};
+        if (!acc[slot.mission][slot.date]) acc[slot.mission][slot.date] = [];
+        acc[slot.mission][slot.date].push(slot);
+        acc[slot.mission][slot.date].sort((a, b) => String(a.startTime).localeCompare(String(b.startTime)));
+        return acc;
+      }, {});
+    }
+
+    function renderCalendarBand(slot, mission, currentUser) {
+      const slotRegistrations = allRegistrations.filter(reg => reg.slotId === slot.id);
+      const volunteerNames = slotRegistrations.map(formatVolunteerShortName).filter(Boolean);
+      const isMine = !!(currentUser && slot.isSelectedByCurrentUser);
+      const bandClasses = [
+        'calendar-band',
+        `calendar-band-${mission.id}`,
+        slot.registeredCount ? 'calendar-band-filled' : 'calendar-band-empty',
+        slot.isFull ? 'calendar-band-full' : '',
+        isMine ? 'calendar-band-mine' : '',
+      ].filter(Boolean).join(' ');
+
+      return `
+        <a class="${bandClasses}" href="benevole.html?slot=${encodeURIComponent(slot.id)}" aria-label="${escapeAttr(mission.label)} ${escapeAttr(formatDate(slot.date))} ${escapeAttr(formatTime(slot.startTime))} - ${escapeAttr(formatTime(slot.endTime))}">
+          <div class="calendar-band-top">
+            <span class="calendar-band-time">${escapeHtml(formatTime(slot.startTime))} - ${escapeHtml(formatTime(slot.endTime))}</span>
+            <span class="calendar-band-count">${escapeHtml(String(slot.registeredCount || 0))}/${escapeHtml(String(slot.maxVolunteers || 0))}</span>
+          </div>
+          <div class="calendar-band-title">${escapeHtml(mission.label)}</div>
+          <div class="calendar-band-body">
+            ${slot.registeredCount ? `<span class="calendar-band-names">${escapeHtml(volunteerNames.join(', '))}</span>` : '<span class="calendar-band-empty-label">Personne placé</span>'}
+          </div>
+        </a>
+      `;
+    }
+
+    function escapeAttr(value) {
+      return escapeHtml(value).replace(/`/g, '&#96;');
+    }
 
 function populateDateFilter() {
   if (!filterDate) return;
@@ -183,5 +316,44 @@ function formatVolunteerShortName(registration) {
   if (!firstName) return '';
   if (!lastName) return firstName;
 
-  return `${firstName} . ${lastName.charAt(0).toUpperCase()}`;
+  return `${firstName} ${lastName.charAt(0).toUpperCase()}.`;
+}
+
+function getMissionTheme(missionId) {
+  const themes = {
+    restauration: { accent: '#d61f26', soft: 'rgba(214, 31, 38, 0.12)', text: '#8d1117' },
+    caisse_tombola: { accent: '#c98a00', soft: 'rgba(201, 138, 0, 0.13)', text: '#7b5400' },
+    terrain: { accent: '#17814f', soft: 'rgba(23, 129, 79, 0.13)', text: '#105537' },
+    sono_video: { accent: '#2457d6', soft: 'rgba(36, 87, 214, 0.13)', text: '#17368b' },
+    buvette_1: { accent: '#aa5c00', soft: 'rgba(170, 92, 0, 0.13)', text: '#7c4200' },
+    buvette_2: { accent: '#0f8b8d', soft: 'rgba(15, 139, 141, 0.13)', text: '#0b6465' },
+  };
+
+  return themes[missionId] || { accent: '#111111', soft: 'rgba(17, 17, 17, 0.08)', text: '#111111' };
+}
+
+function renderCalendarSlotBand(slot, mission, theme, registrationsBySlot, currentUser) {
+  const registrations = registrationsBySlot.get(slot.id) || [];
+  const volunteerNames = registrations.map(formatVolunteerShortName).filter(Boolean);
+  const isEmpty = Number(slot.registeredCount || 0) === 0;
+  const isSelected = !!(currentUser && slot.isSelectedByCurrentUser);
+  const href = `benevole.html?slot=${encodeURIComponent(slot.id)}`;
+  const statusLabel = slot.isFull ? 'Complet' : `${slot.registeredCount || 0}/${slot.maxVolunteers}`;
+  const titleNames = volunteerNames.length ? volunteerNames.join(', ') : 'Aucun bénévole placé';
+
+  return `
+    <a class="calendar-slot-band ${isEmpty ? 'is-empty' : ''} ${slot.isFull ? 'is-full' : ''} ${isSelected ? 'is-selected' : ''}" href="${href}" style="--mission-accent:${theme.accent};--mission-soft:${theme.soft};--mission-text:${theme.text};" title="${escapeHtml(`${mission.label} · ${formatTime(slot.startTime)}-${formatTime(slot.endTime)} · ${titleNames}`)}">
+      <span class="calendar-slot-band-top">
+        <span class="calendar-slot-time">${escapeHtml(`${formatTime(slot.startTime)} - ${formatTime(slot.endTime)}`)}</span>
+        <span class="calendar-slot-capacity">${escapeHtml(statusLabel)}</span>
+      </span>
+      <span class="calendar-slot-band-title">${escapeHtml(slot.description || mission.label)}</span>
+      <span class="calendar-slot-band-names">${escapeHtml(isEmpty ? 'Aucune personne placée' : volunteerNames.join(', ') || 'Place libre')}</span>
+    </a>
+  `;
+}
+
+function formatCalendarWeekday(date) {
+  const parsed = new Date(`${date}T12:00:00`);
+  return parsed.toLocaleDateString('fr-FR', { weekday: 'short' });
 }
