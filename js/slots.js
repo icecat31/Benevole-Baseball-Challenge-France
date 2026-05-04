@@ -5,7 +5,6 @@ const slotsContainer = document.getElementById('slots-container');
 const filterMission = document.getElementById('filter-mission');
 const filterDate = document.getElementById('filter-date');
 const statTotal = document.getElementById('stat-total-slots');
-const statOpen = document.getElementById('stat-open-slots');
 const statVolunteers = document.getElementById('stat-volunteers');
 
 /* ---- State ---- */
@@ -50,10 +49,8 @@ function updateStats() {
   if (!statTotal) return;
 
   const uniqueVolunteers = new Set(allRegistrations.map(reg => reg.userId)).size;
-  const openSlots = allSlots.filter(slot => !slot.isFull).length;
 
   statTotal.textContent = String(allSlots.length);
-  statOpen.textContent = String(openSlots);
   statVolunteers.textContent = String(uniqueVolunteers);
 }
 
