@@ -160,7 +160,7 @@ async function handleRegister(e) {
     return;
   }
 
-  showAuthAlert('Compte créé! Vous êtes connecté.', false);
+  showAuthAlert(result.reusedExisting ? 'Compte existant trouvé. Vous êtes connecté.' : 'Compte créé! Vous êtes connecté.', false);
   setTimeout(async () => {
     clearAuthAlert();
     await refreshSessionUi();

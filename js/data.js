@@ -577,6 +577,28 @@ async unmarkAvailability(registrationId) {
     }
 
     try {
+      const existingByName = await supabaseRequest({
+        table: 'volunteer_users',
+        query: [
+          'select=*',
+          `first_name=ilike.${encodeURIComponent(firstName)}`,
+          `last_name=ilike.${encodeURIComponent(lastName)}`,
+          'limit=2',
+        ].join('&'),
+        prefer: '',
+      });
+
+      if (Array.isArray(existingByName) && existingByName.length > 1) {
+        return { success: false, error: 'Plusieurs comptes portent ce nom. Contactez l’organisation.' };
+      }
+
+      const matchedUser = Array.isArray(existingByName) && existingByName.length ? mapUserRow(existingByName[0]) : null;
+      if (matchedUser) {
+        saveVolunteerSessionToStorage(matchedUser.id);
+        saveVolunteerSessionUserToStorage(matchedUser);
+        return { success: true, user: matchedUser, reusedExisting: true };
+      }
+
       const existing = await supabaseRequest({
         table: 'volunteer_users',
         query: `select=id&email=eq.${encodeURIComponent(email)}&limit=1`,
