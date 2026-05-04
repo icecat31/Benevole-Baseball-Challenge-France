@@ -676,10 +676,6 @@ async unmarkAvailability(registrationId) {
     return null;
   },
 
-  isVolunteerLoggedIn() {
-    return !!this.getCurrentVolunteerUser();
-  },
-
   hasMissingVolunteerContactInfo(user = this.getCurrentVolunteerUser()) {
     if (!user) {
       return false;
