@@ -33,6 +33,7 @@ async function loadAndRender() {
     updateStats();
     renderSlots(allSlots);
     populateDateFilter();
+    DataService.maybeShowVolunteerContactReminder();
   } catch (err) {
     console.error('Erreur chargement créneaux:', err);
     if (slotsContainer) {

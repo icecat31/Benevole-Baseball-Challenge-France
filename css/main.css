@@ -1002,6 +1002,79 @@ header {
   display: none;
 }
 
+/* ---- Contact reminder modal ---- */
+.contact-reminder-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 220;
+  background: rgba(12, 12, 12, 0.62);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.contact-reminder {
+  width: 100%;
+  max-width: 460px;
+  background: linear-gradient(180deg, #ffffff 0%, #fff8f7 100%);
+  border: 1px solid rgba(214, 31, 38, 0.14);
+  border-radius: calc(var(--radius) + 2px);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
+  padding: 1.4rem 1.35rem 1.25rem;
+  position: relative;
+}
+
+.contact-reminder-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.28rem 0.65rem;
+  border-radius: 999px;
+  background: rgba(214, 31, 38, 0.09);
+  color: var(--color-secondary);
+  font-size: 0.78rem;
+  font-weight: 700;
+  margin-bottom: 0.65rem;
+}
+
+.contact-reminder h3 {
+  color: var(--color-primary);
+  font-size: 1.15rem;
+  line-height: 1.25;
+  margin-bottom: 0.5rem;
+}
+
+.contact-reminder p {
+  color: var(--color-text-muted);
+  font-size: 0.94rem;
+  margin-bottom: 1rem;
+}
+
+.contact-reminder-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  justify-content: flex-end;
+}
+
+.contact-reminder-close {
+  position: absolute;
+  top: 0.65rem;
+  right: 0.75rem;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0.2rem;
+}
+
+.contact-reminder-close:hover {
+  color: var(--color-primary);
+}
+
 /* ---- Success screen ---- */
 .success-screen {
   text-align: center;

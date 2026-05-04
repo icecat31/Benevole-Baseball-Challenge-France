@@ -186,6 +186,7 @@ async function refreshSessionUi() {
 
   if (isLoggedIn) {
     await loadAndRenderSlots();
+    DataService.maybeShowVolunteerContactReminder(user);
   }
 }
 

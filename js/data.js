@@ -680,6 +680,84 @@ async unmarkAvailability(registrationId) {
     return !!this.getCurrentVolunteerUser();
   },
 
+  hasMissingVolunteerContactInfo(user = this.getCurrentVolunteerUser()) {
+    if (!user) {
+      return false;
+    }
+
+    const email = String(user.email || '').trim();
+    const phone = String(user.phone || '').trim();
+    return !email || !phone;
+  },
+
+  maybeShowVolunteerContactReminder(user = this.getCurrentVolunteerUser()) {
+    if (!user || !this.hasMissingVolunteerContactInfo(user) || typeof document === 'undefined') {
+      return false;
+    }
+
+    const reminderKey = `bcf2026_contact_reminder_${user.id}`;
+    if (sessionStorage.getItem(reminderKey) === 'shown') {
+      return false;
+    }
+
+    if (document.getElementById('volunteer-contact-reminder-overlay')) {
+      sessionStorage.setItem(reminderKey, 'shown');
+      return true;
+    }
+
+    const missingParts = [];
+    if (!String(user.email || '').trim()) {
+      missingParts.push('votre adresse e-mail');
+    }
+    if (!String(user.phone || '').trim()) {
+      missingParts.push('votre numéro de téléphone');
+    }
+
+    const overlay = document.createElement('div');
+    overlay.className = 'contact-reminder-overlay';
+    overlay.id = 'volunteer-contact-reminder-overlay';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.innerHTML = `
+      <div class="contact-reminder" role="document">
+        <button type="button" class="contact-reminder-close" aria-label="Fermer la pop-up">×</button>
+        <div class="contact-reminder-badge">Profil incomplet</div>
+        <h3>Complétez vos informations de compte</h3>
+        <p>Il manque ${escapeHtml(missingParts.join(' et '))}. Rendez-vous sur la page compte pour les ajouter.</p>
+        <div class="contact-reminder-actions">
+          <a class="btn btn-primary" href="compte.html">Aller sur mon compte</a>
+          <button type="button" class="btn btn-outline contact-reminder-later">Plus tard</button>
+        </div>
+      </div>
+    `;
+
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') {
+        closeReminder();
+      }
+    };
+
+    const closeReminder = () => {
+      overlay.remove();
+      sessionStorage.setItem(reminderKey, 'shown');
+      document.removeEventListener('keydown', handleEscape);
+    };
+
+    overlay.addEventListener('click', (event) => {
+      if (event.target === overlay) {
+        closeReminder();
+      }
+    });
+
+    overlay.querySelector('.contact-reminder-close')?.addEventListener('click', closeReminder);
+    overlay.querySelector('.contact-reminder-later')?.addEventListener('click', closeReminder);
+
+    document.addEventListener('keydown', handleEscape);
+    document.body.appendChild(overlay);
+    sessionStorage.setItem(reminderKey, 'shown');
+    return true;
+  },
+
   /**
    * Liste les comptes bénévoles créés.
    * @returns {Promise<Array>}
