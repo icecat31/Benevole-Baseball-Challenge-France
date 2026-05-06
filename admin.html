@@ -78,9 +78,22 @@
         <div class="admin-header">
           <h1>📊 Tableau de bord bénévoles</h1>
           <div class="admin-toolbar">
-            <button id="export-csv-btn" class="btn btn-sm btn-secondary" aria-label="Exporter les inscriptions en CSV">
-              📥 Exporter CSV
-            </button>
+            <div class="export-dropdown" style="position: relative; display: inline-block;">
+              <button id="export-csv-btn" class="btn btn-sm btn-secondary" aria-label="Télécharger les données en CSV" aria-haspopup="true">
+                📥 Télécharger
+              </button>
+              <div id="export-menu" class="export-menu" style="display: none; position: absolute; top: 100%; right: 0; background: white; border: 1px solid var(--color-border, #ddd); border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); z-index: 1000; min-width: 220px;">
+                <button id="export-registrations-btn" class="export-option" style="display: block; width: 100%; padding: 0.75rem 1rem; text-align: left; border: none; background: none; cursor: pointer; font-size: 0.95rem;">
+                  📋 Inscriptions
+                </button>
+                <button id="export-slots-btn" class="export-option" style="display: block; width: 100%; padding: 0.75rem 1rem; text-align: left; border: none; background: none; cursor: pointer; font-size: 0.95rem;">
+                  🕒 Créneaux
+                </button>
+                <button id="export-accounts-btn" class="export-option" style="display: block; width: 100%; padding: 0.75rem 1rem; text-align: left; border: none; background: none; cursor: pointer; font-size: 0.95rem;">
+                  👤 Comptes utilisateurs
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 

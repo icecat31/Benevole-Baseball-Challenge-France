@@ -84,7 +84,7 @@ async function loadDashboard() {
     renderCalendarTab(slots, registrations);
     renderAccountsTab(users);
     setupTabs();
-    setupExport(registrations);
+    setupExport(registrations, slots, users);
     setupDeleteModal(registrations);
   } catch (err) {
     console.error('Erreur chargement admin:', err);
@@ -363,38 +363,105 @@ function setupTabs() {
 /* ================================================================
    Export CSV
    ================================================================ */
-function setupExport(registrations) {
+function setupExport(registrations, slots, users) {
   const exportBtn = document.getElementById('export-csv-btn');
+  const exportMenu = document.getElementById('export-menu');
+  const exportRegistrationsBtn = document.getElementById('export-registrations-btn');
+  const exportSlotsBtn = document.getElementById('export-slots-btn');
+  const exportAccountsBtn = document.getElementById('export-accounts-btn');
+
   if (!exportBtn) return;
 
-  exportBtn.addEventListener('click', () => {
-    const rows = [
-      ['Prénom', 'Nom', 'Email', 'Téléphone', 'Mission', 'Date', 'Horaire', 'Commentaire', 'Date soumise'],
-      ...registrations.map(reg => {
-        const mission = DataService.getMissionById(reg.mission);
-        return [
-          reg.firstName,
-          reg.lastName,
-          reg.email || '',
-          reg.phone || '',
-          mission ? mission.label : reg.mission,
-          formatDate(reg.date),
-          `${reg.startTime}-${reg.endTime}`,
-          reg.comment || '',
-          formatDatetime(reg.submittedAt),
-        ];
-      }),
-    ];
-
-    const csv = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(';')).join('\n');
-    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href     = url;
-    a.download = `benevoles_bcf2026_${new Date().toISOString().slice(0,10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+  // Ouvrir/fermer le menu
+  exportBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (exportMenu) {
+      exportMenu.style.display = exportMenu.style.display === 'none' ? 'block' : 'none';
+    }
   });
+
+  // Fermer le menu si clic ailleurs
+  document.addEventListener('click', (e) => {
+    if (exportMenu && !exportMenu.contains(e.target) && e.target !== exportBtn) {
+      exportMenu.style.display = 'none';
+    }
+  });
+
+  // Export inscriptions
+  if (exportRegistrationsBtn) {
+    exportRegistrationsBtn.addEventListener('click', () => {
+      const rows = [
+        ['Prénom', 'Nom', 'Email', 'Téléphone', 'Mission', 'Date', 'Horaire', 'Commentaire', 'Date soumise'],
+        ...registrations.map(reg => {
+          const mission = DataService.getMissionById(reg.mission);
+          return [
+            reg.firstName,
+            reg.lastName,
+            reg.email || '',
+            reg.phone || '',
+            mission ? mission.label : reg.mission,
+            formatDate(reg.date),
+            `${reg.startTime}-${reg.endTime}`,
+            reg.comment || '',
+            formatDatetime(reg.submittedAt),
+          ];
+        }),
+      ];
+      downloadCSV(rows, `inscriptions_bcf2026_${new Date().toISOString().slice(0,10)}.csv`);
+      if (exportMenu) exportMenu.style.display = 'none';
+    });
+  }
+
+  // Export créneaux
+  if (exportSlotsBtn) {
+    exportSlotsBtn.addEventListener('click', () => {
+      const rows = [
+        ['Mission', 'Date', 'Horaire', 'Max bénévoles', 'Inscrits', 'Statut'],
+        ...slots.map(slot => {
+          const mission = DataService.getMissionById(slot.mission);
+          return [
+            mission ? mission.label : slot.mission,
+            formatDate(slot.date),
+            `${formatTime(slot.startTime)}-${formatTime(slot.endTime)}`,
+            slot.maxVolunteers || 0,
+            slot.registeredCount || 0,
+            slot.isFull ? 'Complet' : 'Ouvert',
+          ];
+        }),
+      ];
+      downloadCSV(rows, `crenaux_bcf2026_${new Date().toISOString().slice(0,10)}.csv`);
+      if (exportMenu) exportMenu.style.display = 'none';
+    });
+  }
+
+  // Export comptes utilisateurs
+  if (exportAccountsBtn) {
+    exportAccountsBtn.addEventListener('click', () => {
+      const rows = [
+        ['Prénom', 'Nom', 'Email', 'Téléphone', 'Date création'],
+        ...users.map(user => [
+          user.firstName || '',
+          user.lastName || '',
+          user.email || '',
+          user.phone || '',
+          formatDatetime(user.createdAt),
+        ]),
+      ];
+      downloadCSV(rows, `comptes_bcf2026_${new Date().toISOString().slice(0,10)}.csv`);
+      if (exportMenu) exportMenu.style.display = 'none';
+    });
+  }
+}
+
+function downloadCSV(rows, filename) {
+  const csv = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(';')).join('\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 /* ================================================================
