@@ -30,7 +30,7 @@ const CONFIG = {
   },
 };
 
-const ALLOWED_DATES = ['2026-05-14', '2026-05-15', '2026-05-16', '2026-05-17'];
+const ALLOWED_DATES = ['2026-05-14', '2026-05-15', '2026-05-16', '2026-05-17', '2026-09-12', '2026-09-13', '2026-09-14', '2026-09-15', '2026-09-16', '2026-09-17', '2026-09-18', '2026-09-19'];
 
 /* ================================================================
    MISSIONS
@@ -687,6 +687,41 @@ async unmarkAvailability(registrationId) {
   logoutVolunteerUser() {
     clearVolunteerSessionFromStorage();
     clearVolunteerSessionUserFromStorage();
+  },
+
+  async deleteVolunteerAccount() {
+    const currentUser = this.getCurrentVolunteerUser();
+    if (!currentUser) {
+      return { success: false, error: 'Connexion requise.' };
+    }
+
+    if (!isSupabaseEnabled()) {
+      return { success: false, error: 'Connexion Supabase non configurée.' };
+    }
+
+    try {
+      const deletedRegistrations = await supabaseRequest({
+        method: 'DELETE',
+        table: 'registrations',
+        query: `user_id=eq.${encodeURIComponent(currentUser.id)}&select=id`,
+      });
+
+      const deletedUser = await supabaseRequest({
+        method: 'DELETE',
+        table: 'volunteer_users',
+        query: `id=eq.${encodeURIComponent(currentUser.id)}&select=id`,
+      });
+
+      if (!Array.isArray(deletedUser) || deletedUser.length === 0) {
+        return { success: false, error: 'Compte introuvable.' };
+      }
+
+      this.logoutVolunteerUser();
+      return { success: true, registrationsDeleted: Array.isArray(deletedRegistrations) ? deletedRegistrations.length : 0 };
+    } catch (err) {
+      console.error('Erreur Supabase deleteVolunteerAccount:', err);
+      return { success: false, error: 'Impossible de supprimer votre compte et vos données.' };
+    }
   },
 
   getCurrentVolunteerUser() {

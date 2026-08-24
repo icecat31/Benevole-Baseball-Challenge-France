@@ -261,6 +261,17 @@ header {
   background: #002d6b;
 }
 
+.btn-danger {
+  background: #b42318;
+  color: var(--color-white);
+  border-color: #b42318;
+}
+
+.btn-danger:hover {
+  background: #8f1d13;
+  border-color: #8f1d13;
+}
+
 .btn-sm {
   padding: 0.35rem 0.85rem;
   font-size: 0.82rem;

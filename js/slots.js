@@ -11,12 +11,20 @@ const statVolunteers = document.getElementById('stat-volunteers');
 let allSlots = [];
 let allRegistrations = [];
 
-const SLOT_DATES = ['2026-05-14', '2026-05-15', '2026-05-16', '2026-05-17'];
+const SLOT_DATES = ['2026-05-14', '2026-05-15', '2026-05-16', '2026-05-17', '2026-09-12', '2026-09-13', '2026-09-14', '2026-09-15', '2026-09-16', '2026-09-17', '2026-09-18', '2026-09-19'];
 const CALENDAR_DAYS = [
   { date: '2026-05-14', label: 'Jeudi 14', shortLabel: 'Jeu. 14' },
   { date: '2026-05-15', label: 'Vendredi 15', shortLabel: 'Ven. 15' },
   { date: '2026-05-16', label: 'Samedi 16', shortLabel: 'Sam. 16' },
   { date: '2026-05-17', label: 'Dimanche 17', shortLabel: 'Dim. 17' },
+  { date: '2026-09-12', label: 'Samedi 12', shortLabel: 'Sam. 12' },
+  { date: '2026-09-13', label: 'Dimanche 13', shortLabel: 'Dim. 13' },
+  { date: '2026-09-14', label: 'Lundi 14', shortLabel: 'Lun. 14' },
+  { date: '2026-09-15', label: 'Mardi 15', shortLabel: 'Mar. 15' },
+  { date: '2026-09-16', label: 'Mercredi 16', shortLabel: 'Mer. 16' },
+  { date: '2026-09-17', label: 'Jeudi 17', shortLabel: 'Jeu. 17' },
+  { date: '2026-09-18', label: 'Vendredi 18', shortLabel: 'Ven. 18' },
+  { date: '2026-09-19', label: 'Samedi 19', shortLabel: 'Sam. 19' },
 ];
 
 const MISSION_THEMES = {

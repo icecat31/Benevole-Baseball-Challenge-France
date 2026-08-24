@@ -5,6 +5,8 @@ const accountAlert = document.getElementById('account-alert');
 const accountAlertMessage = accountAlert ? accountAlert.querySelector('.alert-message') : null;
 const accountLoggedOut = document.getElementById('account-logged-out');
 const accountSubmitButton = accountForm ? accountForm.querySelector('button[type="submit"]') : null;
+const accountDeleteZone = document.getElementById('account-delete-zone');
+const accountDeleteButton = document.getElementById('delete-account-btn');
 
 document.addEventListener('DOMContentLoaded', async () => {
   const sessionUser = DataService.getCurrentVolunteerUser();
@@ -28,6 +30,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   if (accountForm) {
     accountForm.classList.remove('hidden');
+    if (accountDeleteZone) accountDeleteZone.classList.remove('hidden');
     // Fill values from DB/session; set placeholder when empty
     const fn = user.firstName || '';
     const ln = user.lastName || '';
@@ -46,6 +49,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     accountForm.elements['phone'].value = ph;
     accountForm.elements['phone'].placeholder = ph ? '' : 'Entrez la valeur';
     accountForm.addEventListener('submit', handleSaveAccount);
+  }
+
+  if (accountDeleteButton) {
+    accountDeleteButton.addEventListener('click', handleDeleteAccount);
   }
 });
 
@@ -97,6 +104,45 @@ async function handleSaveAccount(e) {
     accountSubmitButton.disabled = false;
     accountSubmitButton.textContent = 'Enregistrer les modifications';
   }
+}
+
+async function handleDeleteAccount() {
+  const currentUser = DataService.getCurrentVolunteerUser();
+  if (!currentUser) {
+    showAccountAlert('Vous devez être connecté pour supprimer votre compte.', true);
+    return;
+  }
+
+  const confirmed = window.confirm('Supprimer votre compte supprimera aussi toutes vos inscriptions et données associées. Cette action est irréversible. Confirmez-vous ?');
+  if (!confirmed) {
+    return;
+  }
+
+  if (accountDeleteButton) {
+    accountDeleteButton.disabled = true;
+    accountDeleteButton.textContent = 'Suppression...';
+  }
+
+  const result = await DataService.deleteVolunteerAccount();
+
+  if (!result.success) {
+    showAccountAlert(result.error || 'Impossible de supprimer votre compte.', true);
+    if (accountDeleteButton) {
+      accountDeleteButton.disabled = false;
+      accountDeleteButton.textContent = 'Supprimer mon compte et mes données';
+    }
+    return;
+  }
+
+  showAccountAlert('Votre compte et vos données ont bien été supprimés.', false);
+
+  if (accountForm) accountForm.classList.add('hidden');
+  if (accountDeleteZone) accountDeleteZone.classList.add('hidden');
+  if (accountLoggedOut) accountLoggedOut.classList.remove('hidden');
+
+  setTimeout(() => {
+    window.location.href = 'benevole.html';
+  }, 1200);
 }
 
 function showAccountAlert(message, isError = false) {
