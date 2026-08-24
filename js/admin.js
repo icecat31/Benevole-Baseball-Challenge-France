@@ -121,23 +121,44 @@ function renderRegistrationsTab(registrations) {
   const filterMission = document.getElementById('admin-filter-mission');
   const filterDate    = document.getElementById('admin-filter-date');
 
-  // Peupler les filtres
+  // Peupler les filtres uniquement avec les valeurs réellement présentes dans les inscriptions
   if (filterMission) {
-    filterMission.innerHTML = '<option value="all">Toutes les missions</option>';
-    DataService.getMissions().forEach(m => {
-      filterMission.innerHTML += `<option value="${escapeHtml(m.id)}">${escapeHtml(m.icon)} ${escapeHtml(m.label)}</option>`;
+    const usedMissionIds = [...new Set(
+      registrations
+        .map(r => r.mission)
+        .filter(Boolean)
+    )].sort((a, b) => {
+      const missionA = DataService.getMissionById(a);
+      const missionB = DataService.getMissionById(b);
+      const labelA = missionA ? missionA.label : String(a);
+      const labelB = missionB ? missionB.label : String(b);
+      return labelA.localeCompare(labelB, 'fr');
     });
+
+    filterMission.innerHTML = '<option value="all">Toutes les missions</option>';
+    usedMissionIds.forEach(missionId => {
+      const mission = DataService.getMissionById(missionId);
+      const label = mission ? `${mission.icon} ${mission.label}` : missionId;
+      filterMission.innerHTML += `<option value="${escapeHtml(missionId)}">${escapeHtml(label)}</option>`;
+    });
+
     filterMission.addEventListener('change', () =>
       renderRegistrationRows(registrations, filterMission.value, filterDate ? filterDate.value : 'all')
     );
   }
 
   if (filterDate) {
+    const usedDates = [...new Set(
+      registrations
+        .map(r => r.date)
+        .filter(Boolean)
+    )].sort();
+
     filterDate.innerHTML = '<option value="all">Toutes les dates</option>';
-    const dates = [...new Set(registrations.map(r => r.date))].sort();
-    dates.forEach(d => {
+    usedDates.forEach(d => {
       filterDate.innerHTML += `<option value="${escapeHtml(d)}">${escapeHtml(formatDate(d))}</option>`;
     });
+
     filterDate.addEventListener('change', () =>
       renderRegistrationRows(registrations, filterMission ? filterMission.value : 'all', filterDate.value)
     );

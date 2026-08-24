@@ -70,25 +70,48 @@ function setupAuthTabs() {
 }
 
 function populateFilters() {
+  const availableMissionIds = [...new Set((allSlots || []).map(slot => slot.mission).filter(Boolean))];
+  const visibleMissions = availableMissionIds.length
+    ? DataService.getMissions().filter(mission => availableMissionIds.includes(mission.id))
+    : DataService.getMissions();
+
   if (slotFilterMission) {
-    const missions = DataService.getMissions();
+    const currentValue = slotFilterMission.value || 'all';
     slotFilterMission.innerHTML = '<option value="all">Toutes les missions</option>';
-    missions.forEach(mission => {
+
+    visibleMissions.forEach(mission => {
       const option = document.createElement('option');
       option.value = mission.id;
       option.textContent = `${mission.icon} ${mission.label}`;
       slotFilterMission.appendChild(option);
     });
+
+    if (currentValue !== 'all' && visibleMissions.some(mission => mission.id === currentValue)) {
+      slotFilterMission.value = currentValue;
+    } else {
+      slotFilterMission.value = 'all';
+    }
   }
 
+  const availableDates = [...new Set((allSlots || []).map(slot => slot.date).filter(Boolean))].sort();
+  const visibleDates = availableDates.length ? availableDates : SLOT_DATES;
+
   if (slotFilterDate) {
+    const currentValue = slotFilterDate.value || 'all';
     slotFilterDate.innerHTML = '<option value="all">Toutes les dates</option>';
-    SLOT_DATES.forEach(date => {
+
+    visibleDates.forEach(date => {
       const option = document.createElement('option');
       option.value = date;
       option.textContent = formatDate(date);
       slotFilterDate.appendChild(option);
     });
+
+    if (currentValue !== 'all' && visibleDates.includes(currentValue)) {
+      slotFilterDate.value = currentValue;
+    } else {
+      slotFilterDate.value = 'all';
+    }
   }
 }
 

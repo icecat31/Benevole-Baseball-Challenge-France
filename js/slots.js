@@ -219,32 +219,47 @@ function populateMissionFilter() {
   if (!filterMission) return;
 
   const currentValue = filterMission.value || 'all';
+  const availableMissionIds = [...new Set((allSlots || []).map(slot => slot.mission).filter(Boolean))];
+  const visibleMissions = availableMissionIds.length
+    ? DataService.getMissions().filter(mission => availableMissionIds.includes(mission.id))
+    : DataService.getMissions();
+
   filterMission.innerHTML = '<option value="all">Toutes les missions</option>';
 
-  DataService.getMissions().forEach(mission => {
+  visibleMissions.forEach(mission => {
     const option = document.createElement('option');
     option.value = mission.id;
     option.textContent = `${mission.icon} ${mission.label}`;
     filterMission.appendChild(option);
   });
 
-  filterMission.value = currentValue;
+  if (currentValue !== 'all' && visibleMissions.some(mission => mission.id === currentValue)) {
+    filterMission.value = currentValue;
+  } else {
+    filterMission.value = 'all';
+  }
 }
 
 function populateDateFilter() {
   if (!filterDate) return;
 
-  const existing = new Set(Array.from(filterDate.options).map(option => option.value));
-  const dates = [...new Set(allSlots.map(slot => slot.date))].filter(Boolean);
+  const currentValue = filterDate.value || 'all';
+  const dates = [...new Set((allSlots || []).map(slot => slot.date).filter(Boolean))].sort();
   const source = dates.length > 0 ? dates : SLOT_DATES;
 
+  filterDate.innerHTML = '<option value="all">Toutes les dates</option>';
   source.forEach(date => {
-    if (existing.has(date)) return;
     const option = document.createElement('option');
     option.value = date;
     option.textContent = formatDate(date);
     filterDate.appendChild(option);
   });
+
+  if (currentValue !== 'all' && source.includes(currentValue)) {
+    filterDate.value = currentValue;
+  } else {
+    filterDate.value = 'all';
+  }
 }
 
 function setupMissionChips() {
