@@ -39,16 +39,15 @@ document.addEventListener('DOMContentLoaded', () => {
    ================================================================ */
 function handleLogin(e) {
   e.preventDefault();
-  const firstName = String(loginForm.elements['firstName'].value || '').trim();
-  const lastName = String(loginForm.elements['lastName'].value || '').trim();
+  const pwd = loginForm.elements['password'].value;
 
-  if (DataService.loginAdmin(firstName, lastName)) {
+  if (DataService.loginAdmin(pwd)) {
     if (loginError) loginError.classList.add('hidden');
     showDashboard();
   } else {
     if (loginError) loginError.classList.remove('hidden');
-    loginForm.reset();
-    loginForm.elements['firstName'].focus();
+    loginForm.elements['password'].value = '';
+    loginForm.elements['password'].focus();
   }
 }
 

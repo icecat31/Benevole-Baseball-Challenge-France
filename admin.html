@@ -36,37 +36,28 @@
       <div class="login-card">
         <div class="login-icon" aria-hidden="true">🔐</div>
         <h2 id="login-title">Accès Administration</h2>
-        <p>Entrez votre prénom et votre nom pour accéder au tableau de bord.</p>
+        <p>Entrez le mot de passe pour accéder au tableau de bord.</p>
 
         <div id="login-error" class="alert alert-danger hidden" role="alert">
           <span class="alert-icon" aria-hidden="true">⚠️</span>
-          <span>Prénom ou nom incorrect.</span>
+          <span>Mot de passe incorrect.</span>
         </div>
 
         <form id="login-form" novalidate>
           <div class="form-group" style="text-align:left">
-            <label for="admin-first-name">Prénom</label>
-            <input
-              type="text"
-              id="admin-first-name"
-              name="firstName"
-              autocomplete="given-name"
-              placeholder="Ex : admin"
-              aria-required="true"
-              required
-            />
-          </div>
-          <div class="form-group" style="text-align:left">
-            <label for="admin-last-name">Nom</label>
-            <input
-              type="text"
-              id="admin-last-name"
-              name="lastName"
-              autocomplete="family-name"
-              placeholder="Ex : challenge"
-              aria-required="true"
-              required
-            />
+            <label for="password">Mot de passe</label>
+            <div class="password-field">
+              <input
+                type="password"
+                id="password"
+                name="password"
+                autocomplete="current-password"
+                placeholder="••••••••••"
+                aria-required="true"
+                required
+              />
+              <button class="password-toggle" type="button" data-password-toggle="password" aria-label="Afficher le mot de passe" aria-pressed="false">👁️</button>
+            </div>
           </div>
           <button type="submit" class="btn btn-primary btn-block" style="margin-top:0.5rem">
             Accéder au tableau de bord
