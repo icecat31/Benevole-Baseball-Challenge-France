@@ -40,7 +40,7 @@ const MISSIONS = [
   { id: 'caisse_tombola', label: 'Caisse/Tombola',        icon: '🎟️' },
   { id: 'terrain',        label: 'Terrain',               icon: '⚾' },
   { id: 'sono_video',     label: 'Sono/vidéo',            icon: '🎤' },
-  { id: 'buvette_1',      label: 'Buvette 1 (Snack)',     icon: '🍺' },
+  { id: 'buvette_1',      label: 'Buvette 1',     icon: '🍺' },
   { id: 'buvette_2',      label: 'Buvette 2 (Boissons)',  icon: '🍺' },
 ];
 
