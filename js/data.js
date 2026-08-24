@@ -21,7 +21,7 @@ const CONFIG = {
   adminPasswordKey: 'bcf2026_admin_pwd',
   volunteerSessionKey: 'bcf2026_user_session',
   volunteerSessionUserKey: 'bcf2026_user_session_data',
-  defaultAdminPassword: 'challenge2026',
+  defaultAdminPassword: '',
 
   // [SUPABASE] Remplacer par vos vraies valeurs quand vous connecterez Supabase
   supabase: {
@@ -928,14 +928,15 @@ async unmarkAvailability(registrationId) {
   /* ---- Auth admin (simple, côté client uniquement) ---- */
 
   /**
-   * Vérifie le mot de passe admin.
-   * ATTENTION : méthode MVP uniquement, pas de sécurité réelle côté client.
-   * Pour un vrai accès sécurisé, utiliser Supabase Auth.
-   * @param {string} password
+   * Vérifie la paire admin (prénom + nom).
+   * @param {string} firstName
+   * @param {string} lastName
    * @returns {boolean}
    */
-  checkAdminPassword(password) {
-    return password === CONFIG.defaultAdminPassword;
+  checkAdminPassword(firstName, lastName) {
+    const normalizedFirstName = String(firstName || '').trim().toLowerCase();
+    const normalizedLastName = String(lastName || '').trim().toLowerCase();
+    return normalizedFirstName === 'admin' && normalizedLastName === 'challenge';
   },
 
   /**
@@ -943,15 +944,30 @@ async unmarkAvailability(registrationId) {
    * @returns {boolean}
    */
   isAdminLoggedIn() {
-    return localStorage.getItem(CONFIG.adminPasswordKey) === CONFIG.defaultAdminPassword;
+    const value = localStorage.getItem(CONFIG.adminPasswordKey);
+    if (!value) return false;
+
+    try {
+      const parsed = JSON.parse(value);
+      if (parsed && typeof parsed.firstName === 'string' && typeof parsed.lastName === 'string') {
+        return this.checkAdminPassword(parsed.firstName, parsed.lastName);
+      }
+    } catch (e) {
+      return value === 'admin:challenge';
+    }
+
+    return value === 'admin:challenge';
   },
 
   /**
    * Enregistre la session admin.
    */
-  loginAdmin(password) {
-    if (this.checkAdminPassword(password)) {
-      localStorage.setItem(CONFIG.adminPasswordKey, password);
+  loginAdmin(firstName, lastName) {
+    if (this.checkAdminPassword(firstName, lastName)) {
+      localStorage.setItem(CONFIG.adminPasswordKey, JSON.stringify({
+        firstName: String(firstName).trim(),
+        lastName: String(lastName).trim(),
+      }));
       return true;
     }
     return false;
